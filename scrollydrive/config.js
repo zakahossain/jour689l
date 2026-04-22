@@ -17,7 +17,7 @@ var followPitch = 30;
 
 var config = {
     style: 'mapbox://styles/mapbox/light-v10',
-    accessToken: 'pk.eyJ1IjoiemFrYWhvc3NhaW4iLCJhIjoiY21vN3A3a2hlMDlndDJxcG1neWpqdmltbSJ9.k4WjiOKOimU2KMfuDOBneg',
+    accessToken: '',
     showMarkers: true,
     markerColor: '#3FB1CE',
     theme: 'light',
