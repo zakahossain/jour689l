@@ -1,0 +1,16 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [-76.4908889, 38.9787739],
+      [-76.4815871, 38.9720243]
+    ]
+  },
+  "properties": {
+    "name": "State House to Ruth's Chris",
+    "restaurant": "Ruth's Chris Steak House",
+    "distance": "0.8 miles",
+    "order": 4
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [-76.4908889, 38.9787739],
+      [-76.4863128, 38.9769477]
+    ]
+  },
+  "properties": {
+    "name": "State House to The Choptank",
+    "restaurant": "The Choptank",
+    "distance": "0.4 miles",
+    "order": 3
+  }
+}

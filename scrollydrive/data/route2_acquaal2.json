@@ -1,0 +1,16 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [-76.4908889, 38.9787739],
+      [-76.4921331, 38.9784478]
+    ]
+  },
+  "properties": {
+    "name": "State House to Acqua al 2",
+    "restaurant": "Acqua al 2",
+    "distance": "0.1 miles",
+    "order": 2
+  }
+}

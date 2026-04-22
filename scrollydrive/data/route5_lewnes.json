@@ -1,0 +1,16 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [-76.4908889, 38.9787739],
+      [-76.4822483, 38.971587]
+    ]
+  },
+  "properties": {
+    "name": "State House to Lewnes'",
+    "restaurant": "Lewnes' Steakhouse",
+    "distance": "0.8 miles",
+    "order": 5
+  }
+}
