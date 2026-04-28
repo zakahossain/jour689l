@@ -1,12 +1,7 @@
-utility,total_spent,num_events,period
-BGE,7471.820000000001,2,2024–2025 (full year)
-Choptank Electric,7000,1,2024–2025 (full year)
-Constellation,14586.79,2,2024–2025 (full year)
-Pepco,3297.98,1,2024–2025 (full year)
-Washington Gas,9716.15,1,2024–2025 (full year)
-BGE,8069.290000000001,2,2025–2026 (session)
-Chesapeake Utilities,2312.59,1,2025–2026 (session)
-Choptank Electric,6110.47,1,2025–2026 (session)
-Constellation,15130.51,2,2025–2026 (session)
-Pepco,8515.779999999999,2,2025–2026 (session)
-Washington Gas,15003.75,1,2025–2026 (session)
+utility,2025 session,2026 session
+Constellation,4200,15130.51
+Washington Gas,9716.15,15003.75
+Pepco,3297.98,8515.779999999999
+BGE,7471.820000000001,8069.290000000001
+Choptank Electric,7000,6110.47
+Chesapeake Utilities,0,2312.59

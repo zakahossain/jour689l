@@ -9,11 +9,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Zaka Hossain" />
+<meta name="author" content="Zaka Hossain, Capital News Service" />
 
-<meta name="date" content="2026-04-13" />
+<meta name="date" content="2026-04-27" />
 
-<title>Maryland Lobbying Event Spending by Committee</title>
+<title>Maryland Lobbying Dinners: Data Analysis for CNS Story</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -350,384 +350,1310 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Maryland Lobbying Event Spending by
-Committee</h1>
-<h4 class="author">Zaka Hossain</h4>
-<h4 class="date">2026-04-13</h4>
+<h1 class="title toc-ignore">Maryland Lobbying Dinners: Data Analysis
+for CNS Story</h1>
+<h4 class="author">Zaka Hossain, Capital News Service</h4>
+<h4 class="date">2026-04-27</h4>
 
 </div>
 
 
+<p>NOTE: This file has two jobs: 1. Fact-check the dinner/reception
+figures in our CNS story on lobbying 2. Generate CSV + chart outputs for
+data visualizations</p>
+<p>SCOPE: Dinner and reception data ONLY. My colleague, Quinn Muller is
+handling the lobbying compensation/expenditure data (lobbyist salaries,
+client fees, etc.) separately.</p>
+<div id="data-maryland-state-ethics-commission-lobbying-event-reports.-these-are-disclosures-lobbyists-file-when-they-host-a-dinner-or-reception-for-legislators-they-report-who-attended-what-committees-were-invited-and-the-total-cost.-under-maryland-law-regulated-lobbyists-who-host-a-dinner-or-reception-for-a-qualified-legislative-group-defined-as-all-members-of-the-general-assembly-either-chamber-any-standing-committee-or-a-recognized-county-or-regional-delegation-must-file-an-expenditure-report-with-the-commission-within-14-days-of-the-event.-if-final-costs-are-not-yet-known-lobbyists-may-estimate-and-amend-later.-capital-news-service-analyzed-all-event-reports-filed-for-the-2025-and-2026-regular-sessions-of-the-maryland-general-assembly.-to-account-for-events-hosted-in-the-days-immediately-surrounding-each-session-cns-included-reports-from-the-week-of-jan.-6-through-the-week-of-apr.-11-2025-and-from-the-week-of-jan.-12-through-the-week-of-apr.-17-2026.-data-for-the-20252026-reporting-year-was-retrieved-april-27-2026." class="section level2">
+<h2>DATA: Maryland State Ethics Commission lobbying event reports. These
+are disclosures lobbyists file when they host a dinner or reception for
+legislators — they report who attended, what committees were invited,
+and the total cost. Under Maryland law, regulated lobbyists who host a
+dinner or reception for a qualified legislative group — defined as all
+members of the General Assembly, either chamber, any standing committee
+or a recognized county or regional delegation — must file an expenditure
+report with the Commission within 14 days of the event. If final costs
+are not yet known, lobbyists may estimate and amend later. Capital News
+Service analyzed all event reports filed for the 2025 and 2026 regular
+sessions of the Maryland General Assembly. To account for events hosted
+in the days immediately surrounding each session, CNS included reports
+from the week of Jan. 6 through the week of Apr. 11, 2025, and from the
+week of Jan. 12 through the week of Apr. 17, 2026. Data for the
+2025–2026 reporting year was retrieved April 27, 2026.</h2>
+</div>
 <div id="overview" class="section level2">
 <h2>Overview</h2>
-<p>This analysis compares lobbying event spending by committee for two
-reporting periods:</p>
+<p>This analysis uses Maryland State Ethics Commission lobbying event
+reports to:</p>
 <ul>
-<li><strong>2024-2025:</strong> November 2024 – October 2025</li>
-<li><strong>2025-2026:</strong> November 2025 – October 2026</li>
+<li>Check the dinner-related figures in our story against raw data</li>
+<li>Produce visualization-ready outputs for Datawrapper or Flourish</li>
 </ul>
-<p>Data source: Maryland State Ethics Commission</p>
+<p><strong>Data sources:</strong></p>
+<p><code>Lobbying Event Reports - event_reports_nov2024-oct2025.csv</code>
+| Nov 2024 – Oct 2025 | Full year |
+<code>event_reports_nov2025-oct2026 - event_reports_nov2025-oct2026_updated_04272026.csv</code>
+| Nov 2025 – Oct 2026 | Updated Apr 27, 2026 |</p>
+<p>All output files are saved to <code>rstudio_output/</code>.</p>
+<hr />
 </div>
-<div id="load-libraries" class="section level2">
-<h2>Load Libraries</h2>
-<pre class="r"><code>library(tidyverse)
-library(janitor)</code></pre>
-</div>
-<div id="load-data" class="section level2">
-<h2>Load Data</h2>
-<p>Update the file paths below to match your CSV locations.</p>
-<pre class="r"><code>events_2425 &lt;- read_csv(&quot;Lobbying Event Reports - event_reports_nov2024-oct2025.csv&quot;) %&gt;%
-  clean_names()
+<div id="setup" class="section level2">
+<h2>Setup</h2>
+<pre class="r"><code># Core packages — install any missing ones with install.packages(&quot;packagename&quot;)
+library(tidyverse)   # dplyr, ggplot2, readr, stringr, tidyr, purrr
+library(janitor)     # clean_names() for standardizing column headers
+library(lubridate)   # date parsing (mdy, ymd, etc.)
+library(scales)      # dollar_format() for chart axes
+library(knitr)       # kable() for summary tables
 
-events_2526 &lt;- read_csv(&quot;event_reports_nov2025-oct2026 - event_reports_nov2025-oct2026.csv&quot;) %&gt;%
-  clean_names()</code></pre>
+# Create output directory if it doesn&#39;t exist
+if (!dir.exists(&quot;rstudio_output&quot;)) dir.create(&quot;rstudio_output&quot;)</code></pre>
+<hr />
 </div>
-<div id="define-committee-patterns" class="section level2">
-<h2>Define Committee Patterns</h2>
-<pre class="r"><code>committees &lt;- tribble(
-  ~committee, ~pattern,
-  &quot;House ENT&quot;, &quot;Environment and Transportation&quot;,
-  &quot;Senate EEE&quot;, &quot;Education, Energy, and the Environment&quot;,
-  &quot;House Appropriations&quot;, &quot;House Appropriations&quot;,
-  &quot;Senate Budget &amp; Tax&quot;, &quot;Budget and Taxation&quot;,
-  &quot;House Ways &amp; Means&quot;, &quot;Ways and Means&quot;,
-  &quot;Senate Finance&quot;, &quot;Senate Finance&quot;,
-  &quot;House Economic Matters&quot;, &quot;Economic Matters&quot;,
-  &quot;House Judiciary&quot;, &quot;House Judiciary&quot;,
-  &quot;Senate Judicial Proceedings&quot;, &quot;Judicial Proceedings&quot;,
-  &quot;General Assembly&quot;, &quot;General Assembly&quot;
-)</code></pre>
+<div id="load-and-inspect-data" class="section level2">
+<h2>Load and Inspect Data</h2>
+<pre class="r"><code># 2024-2025 reporting year
+events_2425 &lt;- read_csv(
+  &quot;Lobbying Event Reports - event_reports_nov2024-oct2025.csv&quot;,
+  show_col_types = FALSE
+) %&gt;%
+  clean_names() %&gt;%
+  mutate(event_date_parsed = mdy(event_date))
+
+# 2025-2026 reporting year (April 27 update)
+# NOTE TO SELF: There are two 2025-26 files in this folder. The OLD one is
+# &quot;event_reports_nov2025-oct2026 - event_reports_nov2025-oct2026.csv&quot;
+# (used by the Python scripts). Always use the _updated_04272026 version.
+events_2526 &lt;- read_csv(
+  &quot;event_reports_nov2025-oct2026 - event_reports_nov2025-oct2026_updated_04272026.csv&quot;,
+  show_col_types = FALSE
+) %&gt;%
+  clean_names() %&gt;%
+  mutate(event_date_parsed = mdy(event_date))
+
+# Quick sanity check
+cat(&quot;2024-2025:&quot;, nrow(events_2425), &quot;events\n&quot;)</code></pre>
+<pre><code>## 2024-2025: 259 events</code></pre>
+<pre class="r"><code>cat(&quot;2025-2026:&quot;, nrow(events_2526), &quot;events\n&quot;)</code></pre>
+<pre><code>## 2025-2026: 235 events</code></pre>
+<pre class="r"><code>cat(&quot;\nColumns:&quot;, paste(names(events_2526), collapse = &quot;, &quot;), &quot;\n&quot;)</code></pre>
+<pre><code>## 
+## Columns: form_id, lobbyist_registrant, organization_firm, employer, event_date, total_cost, groups_invited, sponsors, event_date_parsed</code></pre>
+<pre class="r"><code># Flag any dates that failed to parse — these indicate data entry errors
+cat(&quot;\nUnparsed dates in 2024-25:&quot;, sum(is.na(events_2425$event_date_parsed)), &quot;\n&quot;)</code></pre>
+<pre><code>## 
+## Unparsed dates in 2024-25: 0</code></pre>
+<pre class="r"><code>cat(&quot;Unparsed dates in 2025-26:&quot;, sum(is.na(events_2526$event_date_parsed)), &quot;\n&quot;)</code></pre>
+<pre><code>## Unparsed dates in 2025-26: 0</code></pre>
+<pre class="r"><code># Show the bad rows so we can investigate
+if (any(is.na(events_2526$event_date_parsed))) {
+  cat(&quot;\nBad dates in 2025-26 data:\n&quot;)
+  events_2526 %&gt;%
+    filter(is.na(event_date_parsed)) %&gt;%
+    select(employer, event_date, groups_invited) %&gt;%
+    print()
+}
+
+# Range check: mdy() parses two-digit years without error (e.g. &quot;01/10/02&quot; →
+# 2002-01-10), so NA-only checks miss implausible dates. Flag anything outside
+# each file&#39;s expected reporting window.
+oor_2425 &lt;- events_2425 %&gt;%
+  filter(event_date_parsed &lt; ymd(&quot;2024-11-01&quot;) | event_date_parsed &gt; ymd(&quot;2025-10-31&quot;))
+cat(&quot;\nOut-of-range dates in 2024-25 data (expect Nov 2024 – Oct 2025):&quot;, nrow(oor_2425), &quot;record(s)\n&quot;)</code></pre>
+<pre><code>## 
+## Out-of-range dates in 2024-25 data (expect Nov 2024 – Oct 2025): 0 record(s)</code></pre>
+<pre class="r"><code>print(oor_2425 %&gt;% select(employer, event_date, event_date_parsed, total_cost))</code></pre>
+<pre><code>## # A tibble: 0 × 4
+## # ℹ 4 variables: employer &lt;chr&gt;, event_date &lt;chr&gt;, event_date_parsed &lt;date&gt;,
+## #   total_cost &lt;dbl&gt;</code></pre>
+<pre class="r"><code>oor_2526 &lt;- events_2526 %&gt;%
+  filter(event_date_parsed &lt; ymd(&quot;2025-11-01&quot;) | event_date_parsed &gt; ymd(&quot;2026-10-31&quot;))
+cat(&quot;\nOut-of-range dates in 2025-26 data (expect Nov 2025 – Oct 2026):&quot;, nrow(oor_2526), &quot;record(s)\n&quot;)</code></pre>
+<pre><code>## 
+## Out-of-range dates in 2025-26 data (expect Nov 2025 – Oct 2026): 1 record(s)</code></pre>
+<pre class="r"><code>print(oor_2526 %&gt;% select(employer, event_date, event_date_parsed, total_cost))</code></pre>
+<pre><code>## # A tibble: 1 × 4
+##   employer                               event_date event_date_parsed total_cost
+##   &lt;chr&gt;                                  &lt;chr&gt;      &lt;date&gt;                 &lt;dbl&gt;
+## 1 League of Women Voters of Howard Coun… 01/10/02   2002-01-10               524</code></pre>
+<hr />
 </div>
-<div id="function-to-calculate-committee-spending" class="section level2">
-<h2>Function to Calculate Committee Spending</h2>
-<pre class="r"><code>get_committee_spending &lt;- function(df, period_label) {
-  
-  results &lt;- committees %&gt;%
-    mutate(
-      total_spent = map_dbl(pattern, function(p) {
-        df %&gt;%
-          filter(str_detect(groups_invited, regex(p, ignore_case = TRUE))) %&gt;%
-          summarize(total = sum(total_cost, na.rm = TRUE)) %&gt;%
-          pull(total)
-      }),
-      num_events = map_int(pattern, function(p) {
-        df %&gt;%
-          filter(str_detect(groups_invited, regex(p, ignore_case = TRUE))) %&gt;%
-          nrow()
-      }),
-      period = period_label
-    ) %&gt;%
-    select(committee, total_spent, num_events, period)
-  
-  return(results)
+<div id="define-key-variables" class="section level2">
+<h2>Define Key Variables</h2>
+<pre class="r"><code># Maryland General Assembly session dates
+# Using Monday of the week the session opens through Friday of the week it closes.
+# This is more inclusive than exact dates — captures any events in the same week
+# as the session opener/closer without requiring precise date matching.
+
+# 2025: session opened Jan 8 (Wed) → window Jan 6 (Mon); closed Apr 7 (Mon) → window Apr 11 (Fri)
+# 2026: session opened Jan 14 (Wed) → window Jan 12 (Mon); closed Apr 13 (Mon) → window Apr 17 (Fri)
+session_2025_start &lt;- ymd(&quot;2025-01-06&quot;)
+session_2025_end   &lt;- ymd(&quot;2025-04-11&quot;)
+
+session_2026_start &lt;- ymd(&quot;2026-01-12&quot;)
+session_2026_end   &lt;- ymd(&quot;2026-04-17&quot;)
+
+# Committee name patterns for energy-related committees
+# NOTE: Senate EEE was renamed from &quot;Education, Health, and Environmental Affairs&quot;
+# in January 2023 (Senate President Ferguson). Energy/utilities portfolio moved
+# from Senate Finance at the same time. Both datasets start after Jan 2023, so the
+# old name will not appear in our data.
+ent_pattern         &lt;- &quot;Environment and Transportation&quot;
+eee_pattern         &lt;- &quot;Education, Energy, and the Environment&quot;
+energy_cmte_pattern &lt;- paste0(ent_pattern, &quot;|&quot;, eee_pattern)
+
+# Gas and electric utility companies — partial string match catches full names
+# e.g., &quot;BGE&quot; catches &quot;Baltimore Gas and Electric Company&quot;
+utility_pattern &lt;- paste(
+  c(&quot;BGE&quot;, &quot;Baltimore Gas and Electric&quot;,
+    &quot;Constellation&quot;,
+    &quot;Pepco&quot;,
+    &quot;Washington Gas&quot;,
+    &quot;Choptank Electric&quot;,
+    &quot;Chesapeake Utilities&quot;,
+    &quot;Delmarva Power&quot;),
+  collapse = &quot;|&quot;
+)
+
+# Helper: standardize utility names to short versions for charts
+standardize_utility &lt;- function(name) {
+  case_when(
+    str_detect(name, regex(&quot;BGE|Baltimore Gas and Electric&quot;, ignore_case = TRUE)) ~ &quot;BGE&quot;,
+    str_detect(name, regex(&quot;Constellation&quot;,                  ignore_case = TRUE)) ~ &quot;Constellation&quot;,
+    str_detect(name, regex(&quot;Pepco&quot;,                          ignore_case = TRUE)) ~ &quot;Pepco&quot;,
+    str_detect(name, regex(&quot;Washington Gas&quot;,                 ignore_case = TRUE)) ~ &quot;Washington Gas&quot;,
+    str_detect(name, regex(&quot;Choptank&quot;,                       ignore_case = TRUE)) ~ &quot;Choptank Electric&quot;,
+    str_detect(name, regex(&quot;Chesapeake Util&quot;,                ignore_case = TRUE)) ~ &quot;Chesapeake Utilities&quot;,
+    str_detect(name, regex(&quot;Delmarva&quot;,                       ignore_case = TRUE)) ~ &quot;Delmarva Power&quot;,
+    TRUE ~ name
+  )
+}
+
+# Pre-filter: all events during the 2026 session only
+session_2026 &lt;- events_2526 %&gt;%
+  filter(event_date_parsed &gt;= session_2026_start,
+         event_date_parsed &lt;= session_2026_end)
+
+# Pre-filter: ENT/EEE events in each year
+ent_eee_2026 &lt;- session_2026 %&gt;%
+  filter(str_detect(groups_invited, regex(energy_cmte_pattern, ignore_case = TRUE)))
+
+ent_eee_2425 &lt;- events_2425 %&gt;%
+  filter(str_detect(groups_invited, regex(energy_cmte_pattern, ignore_case = TRUE)))
+
+cat(&quot;2026 session events:&quot;, nrow(session_2026), &quot;\n&quot;)</code></pre>
+<pre><code>## 2026 session events: 218</code></pre>
+<pre class="r"><code>cat(&quot;ENT/EEE events (2026 session):&quot;, nrow(ent_eee_2026), &quot;\n&quot;)</code></pre>
+<pre><code>## ENT/EEE events (2026 session): 34</code></pre>
+<pre class="r"><code>cat(&quot;ENT/EEE events (2024-2025 full year):&quot;, nrow(ent_eee_2425), &quot;\n&quot;)</code></pre>
+<pre><code>## ENT/EEE events (2024-2025 full year): 32</code></pre>
+<pre class="r"><code># Confirm the pre-2023 committee name does not appear in either dataset
+old_name_2425 &lt;- events_2425 %&gt;%
+  filter(str_detect(groups_invited, regex(&quot;Education, Health, and Environmental Affairs&quot;, ignore_case = TRUE)))
+
+old_name_2526 &lt;- events_2526 %&gt;%
+  filter(str_detect(groups_invited, regex(&quot;Education, Health, and Environmental Affairs&quot;, ignore_case = TRUE)))
+
+cat(&quot;\nOld EEE name in 2024-25 data:&quot;, nrow(old_name_2425), &quot;rows\n&quot;)</code></pre>
+<pre><code>## 
+## Old EEE name in 2024-25 data: 0 rows</code></pre>
+<pre class="r"><code>cat(&quot;Old EEE name in 2025-26 data:&quot;, nrow(old_name_2526), &quot;rows\n&quot;)</code></pre>
+<pre><code>## Old EEE name in 2025-26 data: 0 rows</code></pre>
+<pre class="r"><code>if (nrow(old_name_2425) &gt; 0 | nrow(old_name_2526) &gt; 0) {
+  cat(&quot;NOTE: Old name found — review these rows and update energy_cmte_pattern.\n&quot;)
 }</code></pre>
+<hr />
 </div>
-<div id="calculate-spending-by-period" class="section level2">
-<h2>Calculate Spending by Period</h2>
-<pre class="r"><code>spending_2425 &lt;- get_committee_spending(events_2425, &quot;2024-2025&quot;)
-spending_2526 &lt;- get_committee_spending(events_2526, &quot;2025-2026&quot;)</code></pre>
+<div id="part-i-fact-checks" class="section level1">
+<h1>PART I — FACT-CHECKS</h1>
+<p><em>Ordered by appearance in the story. Each section quotes the story
+sentence being verified, then shows what the data says.</em></p>
+<hr />
+<div id="fc-1-cornerstone-government-affairs-april-8-dinner-at-lewnes" class="section level2">
+<h2>FC-1: Cornerstone Government Affairs, April 8 Dinner at Lewnes’</h2>
+<blockquote>
+<p><em>“The firm, Cornerstone Government Affairs, picked up the tab for
+this April 8 dinner for members of the House Appropriations Committee
+and Senate Budget and Taxation Committee. The bill closed out at
+$9,275.11, according to the Maryland State Ethics Commission.”</em></p>
+</blockquote>
+<pre class="r"><code># Search on both the employer field AND the organization_firm field (the lobbying firm)
+# because Cornerstone may file under a client&#39;s name as employer
+cornerstone_events &lt;- events_2526 %&gt;%
+  filter(
+    str_detect(employer,          regex(&quot;Cornerstone&quot;, ignore_case = TRUE)) |
+    str_detect(organization_firm, regex(&quot;Cornerstone&quot;, ignore_case = TRUE))
+  ) %&gt;%
+  select(event_date, event_date_parsed, employer, organization_firm,
+         total_cost, groups_invited, sponsors)
+
+cat(&quot;All Cornerstone-related events in 2025-26 data:\n&quot;)</code></pre>
+<pre><code>## All Cornerstone-related events in 2025-26 data:</code></pre>
+<pre class="r"><code>print(cornerstone_events)</code></pre>
+<pre><code>## # A tibble: 7 × 7
+##   event_date event_date_parsed employer             organization_firm total_cost
+##   &lt;chr&gt;      &lt;date&gt;            &lt;chr&gt;                &lt;chr&gt;                  &lt;dbl&gt;
+## 1 02/25/26   2026-02-25        Maryland Troopers A… Cornerstone Gove…        48 
+## 2 02/05/26   2026-02-05        Mechanical Contract… Cornerstone Gove…      3362.
+## 3 03/18/26   2026-03-18        Maryland-Delaware-D… Cornerstone Gove…      3960.
+## 4 02/25/26   2026-02-25        Maryland-Delaware-D… Cornerstone Gove…      4974.
+## 5 01/15/26   2026-01-15        TechNet              Cornerstone Gove…      5261.
+## 6 04/13/26   2026-04-13        Cornerstone Governm… Cornerstone Gove…      9675 
+## 7 04/08/26   2026-04-08        Cornerstone Governm… Cornerstone Gove…      9275.
+## # ℹ 2 more variables: groups_invited &lt;chr&gt;, sponsors &lt;chr&gt;</code></pre>
+<pre class="r"><code># Specifically the April 8 event
+cornerstone_apr8 &lt;- cornerstone_events %&gt;%
+  filter(event_date_parsed == ymd(&quot;2026-04-08&quot;))
+
+if (nrow(cornerstone_apr8) &gt; 0) {
+  cat(&quot;\nApril 8, 2026 event:\n&quot;)
+  print(cornerstone_apr8)
+} else {
+  cat(&quot;\nNOTE FOR STORY: The Cornerstone April 8 dinner is NOT yet in the dataset.\n&quot;)
+  cat(&quot;The $9,275.11 figure came from a physical receipt — verify it matches\n&quot;)
+  cat(&quot;what Cornerstone reports when filings are complete.\n&quot;)
+}</code></pre>
+<pre><code>## 
+## April 8, 2026 event:
+## # A tibble: 1 × 7
+##   event_date event_date_parsed employer             organization_firm total_cost
+##   &lt;chr&gt;      &lt;date&gt;            &lt;chr&gt;                &lt;chr&gt;                  &lt;dbl&gt;
+## 1 04/08/26   2026-04-08        Cornerstone Governm… Cornerstone Gove…      9275.
+## # ℹ 2 more variables: groups_invited &lt;chr&gt;, sponsors &lt;chr&gt;</code></pre>
+<hr />
 </div>
-<div id="year-over-year-comparison" class="section level2">
-<h2>Year-over-Year Comparison</h2>
-<pre class="r"><code>committee_comparison &lt;- bind_rows(spending_2425, spending_2526) %&gt;%
-  pivot_wider(
-    names_from = period,
-    values_from = c(total_spent, num_events)
+<div id="fc-2-event-frequency-during-the-2026-session" class="section level2">
+<h2>FC-2: Event Frequency During the 2026 Session</h2>
+<blockquote>
+<p><em>“Closed-door dinners and private receptions for committees and
+the General Assembly happened nearly every two days during the 2026
+legislative session that ended in mid-April, according to calendars sent
+to all legislators, obtained and analyzed by CNS.”</em></p>
+</blockquote>
+<pre class="r"><code>session_days       &lt;- as.numeric(session_2026_end - session_2026_start) + 1
+unique_event_dates &lt;- n_distinct(session_2026$event_date_parsed)
+total_events_2026  &lt;- nrow(session_2026)
+
+cat(&quot;2026 session: January 12 – April 17 (week-of-session window),&quot;, session_days, &quot;days\n&quot;)</code></pre>
+<pre><code>## 2026 session: January 12 – April 17 (week-of-session window), 96 days</code></pre>
+<pre class="r"><code>cat(&quot;Days with at least one dinner/reception:&quot;, unique_event_dates, &quot;\n&quot;)</code></pre>
+<pre><code>## Days with at least one dinner/reception: 49</code></pre>
+<pre class="r"><code>cat(&quot;Total events filed:&quot;, total_events_2026, &quot;\n&quot;)</code></pre>
+<pre><code>## Total events filed: 218</code></pre>
+<pre class="r"><code>cat(&quot;Average: one event day every&quot;, round(session_days / unique_event_dates, 1), &quot;days\n&quot;)</code></pre>
+<pre><code>## Average: one event day every 2 days</code></pre>
+<hr />
+</div>
+<div id="fc-3-total-spending-year-ending-october-2025" class="section level2">
+<h2>FC-3: Total Spending, Year Ending October 2025</h2>
+<blockquote>
+<p><em>“The most recent data available shows spending on those
+gatherings rose to $2.3 million for the year ending October 2025,
+according to a CNS analysis of the commission’s lobbying
+records.”</em></p>
+</blockquote>
+<pre class="r"><code># Note: Using 2024-2025 data because it is a complete reporting year.
+# The 2025-2026 data is only through April 27, 2026.
+total_2425 &lt;- events_2425 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;Year ending October 2025\n&quot;)</code></pre>
+<pre><code>## Year ending October 2025</code></pre>
+<pre class="r"><code>cat(&quot;Total events:  &quot;, total_2425$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Total events:   259</code></pre>
+<pre class="r"><code>cat(&quot;Total spending: $&quot;, format(total_2425$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total spending: $ 2,303,980.49</code></pre>
+<hr />
+</div>
+<div id="fc-3b-total-spending-year-ending-october-2026-partial" class="section level2">
+<h2>FC-3b: Total Spending, Year Ending October 2026 (Partial)</h2>
+<blockquote>
+<p><em>“The most recent data available shows spending on those
+gatherings rose to $2.3 million for the year ending October 2025,
+according to a CNS analysis of the commission’s lobbying
+records.”</em></p>
+</blockquote>
+<p><em>Note: The 2025-2026 reporting year is not yet complete — data
+retrieved April 27, 2026. This is for comparison only.</em></p>
+<pre class="r"><code>total_2526 &lt;- events_2526 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;Year ending October 2026 (partial — retrieved April 27, 2026)\n&quot;)</code></pre>
+<pre><code>## Year ending October 2026 (partial — retrieved April 27, 2026)</code></pre>
+<pre class="r"><code>cat(&quot;Total events:  &quot;, total_2526$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Total events:   235</code></pre>
+<pre class="r"><code>cat(&quot;Total spending: $&quot;, format(total_2526$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total spending: $ 2,017,067.14</code></pre>
+<pre class="r"><code>cat(&quot;\nYear-over-year comparison:\n&quot;)</code></pre>
+<pre><code>## 
+## Year-over-year comparison:</code></pre>
+<pre class="r"><code>cat(&quot;2024-2025: $&quot;, format(total_2425$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## 2024-2025: $ 2,303,980.49</code></pre>
+<pre class="r"><code>cat(&quot;2025-2026: $&quot;, format(total_2526$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;(partial)\n&quot;)</code></pre>
+<pre><code>## 2025-2026: $ 2,017,067.14 (partial)</code></pre>
+<pre class="r"><code>cat(&quot;Change so far: $&quot;, format(total_2526$total_spending - total_2425$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Change so far: $ -286,913.35</code></pre>
+<hr />
+</div>
+<div id="fc-4-utility-spending-all-events-during-2026-session" class="section level2">
+<h2>FC-4: Utility Spending — All Events During 2026 Session</h2>
+<blockquote>
+<p><em>“Utility companies that do business in Maryland have reported
+spending $60,638 in total, or about $6,064 per event, during the 2026
+legislative session, on committee and General Assembly dinners and
+receptions while these same bodies were deliberating over policies that
+affect the companies’ profits and consumers’ bills, according to the CNS
+analysis.”</em></p>
+</blockquote>
+<pre class="r"><code>utility_all_2026 &lt;- session_2026 %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE)))
+
+utility_all_total_2026 &lt;- utility_all_2026 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE),
+    avg_per_event  = mean(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;Utility spending on ALL committee events, 2026 session:\n&quot;)</code></pre>
+<pre><code>## Utility spending on ALL committee events, 2026 session:</code></pre>
+<pre class="r"><code>cat(&quot;Events:        &quot;, utility_all_total_2026$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:         10</code></pre>
+<pre class="r"><code>cat(&quot;Total:          $&quot;, format(utility_all_total_2026$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:          $ 60,638.65</code></pre>
+<pre class="r"><code>cat(&quot;Avg per event:  $&quot;, format(utility_all_total_2026$avg_per_event, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Avg per event:  $ 6,063.865</code></pre>
+<pre class="r"><code>cat(&quot;\nBreakdown by utility:\n&quot;)</code></pre>
+<pre><code>## 
+## Breakdown by utility:</code></pre>
+<pre class="r"><code>utility_all_2026 %&gt;%
+  group_by(employer) %&gt;%
+  summarize(
+    events = n(),
+    total  = sum(total_cost, na.rm = TRUE)
+  ) %&gt;%
+  arrange(desc(total)) %&gt;%
+  print()</code></pre>
+<pre><code>## # A tibble: 6 × 3
+##   employer                            events  total
+##   &lt;chr&gt;                                &lt;int&gt;  &lt;dbl&gt;
+## 1 Constellation                            3 20627.
+## 2 Washington Gas                           1 15004.
+## 3 Pepco Holdings, LLC.                     2  8516.
+## 4 Baltimore Gas and Electric Company       2  8069.
+## 5 Choptank Electric Cooperative, Inc.      1  6110.
+## 6 Chesapeake Utilities Corporation         1  2313.</code></pre>
+<hr />
+</div>
+<div id="fc-5-utility-enteee-spending-and-total-enteee-spending-2026-session" class="section level2">
+<h2>FC-5: Utility ENT/EEE Spending and Total ENT/EEE Spending, 2026
+Session</h2>
+<blockquote>
+<p><em>“During the 2026 legislative session, the utility companies BGE,
+Pepco, Washington Gas, Choptank Electric and Constellation reported
+spending $55,142 treating the House ENT and the Senate EEE committees —
+the two committees with jurisdiction over their businesses — to dinners
+and receptions, according to the CNS analysis. That figure represents
+nearly a third of the $172,878 lobbyists spent on meals and receptions
+for those two committees during the session.”</em></p>
+</blockquote>
+<pre class="r"><code># Utility spending on ENT/EEE only
+utility_ent_eee_2026 &lt;- ent_eee_2026 %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE)))
+
+utility_ent_eee_total_2026 &lt;- utility_ent_eee_2026 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE),
+    avg_per_event  = mean(total_cost, na.rm = TRUE)
+  )
+
+# Total ENT/EEE spending from ALL employers (the $172,878 figure)
+ent_eee_all_total_2026 &lt;- ent_eee_2026 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+# 2026 session total for context
+session_2026_total &lt;- session_2026 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;=== UTILITY spending on ENT/EEE, 2026 session ===\n&quot;)</code></pre>
+<pre><code>## === UTILITY spending on ENT/EEE, 2026 session ===</code></pre>
+<pre class="r"><code>cat(&quot;Events:        &quot;, utility_ent_eee_total_2026$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:         9</code></pre>
+<pre class="r"><code>cat(&quot;Total:          $&quot;, format(utility_ent_eee_total_2026$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:          $ 55,142.39</code></pre>
+<pre class="r"><code>cat(&quot;Avg per event:  $&quot;, format(utility_ent_eee_total_2026$avg_per_event, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Avg per event:  $ 6,126.932</code></pre>
+<pre class="r"><code>cat(&quot;\n=== ALL employers on ENT/EEE, 2026 session ===\n&quot;)</code></pre>
+<pre><code>## 
+## === ALL employers on ENT/EEE, 2026 session ===</code></pre>
+<pre class="r"><code>cat(&quot;Events:        &quot;, ent_eee_all_total_2026$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:         34</code></pre>
+<pre class="r"><code>cat(&quot;Total:          $&quot;, format(ent_eee_all_total_2026$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:          $ 172,878.41</code></pre>
+<pre class="r"><code>cat(&quot;\nUtility share of ENT/EEE spending:&quot;,
+    round(utility_ent_eee_total_2026$total_spending / ent_eee_all_total_2026$total_spending * 100, 1), &quot;%\n&quot;)</code></pre>
+<pre><code>## 
+## Utility share of ENT/EEE spending: 31.9 %</code></pre>
+<pre class="r"><code>cat(&quot;\n=== 2026 session total (all employers, all committees) ===\n&quot;)</code></pre>
+<pre><code>## 
+## === 2026 session total (all employers, all committees) ===</code></pre>
+<pre class="r"><code>cat(&quot;Events:  &quot;, session_2026_total$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:   218</code></pre>
+<pre class="r"><code>cat(&quot;Total:   $&quot;, format(session_2026_total$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:   $ 1,729,902.87</code></pre>
+<pre class="r"><code>cat(&quot;\nENT/EEE share of total session spending:&quot;,
+    round(ent_eee_all_total_2026$total_spending / session_2026_total$total_spending * 100, 1), &quot;%\n&quot;)</code></pre>
+<pre><code>## 
+## ENT/EEE share of total session spending: 10 %</code></pre>
+<pre class="r"><code>cat(&quot;\nEvent-by-event utility breakdown:\n&quot;)</code></pre>
+<pre><code>## 
+## Event-by-event utility breakdown:</code></pre>
+<pre class="r"><code>utility_ent_eee_2026 %&gt;%
+  select(event_date, employer, total_cost, groups_invited) %&gt;%
+  arrange(desc(total_cost)) %&gt;%
+  print()</code></pre>
+<pre><code>## # A tibble: 9 × 4
+##   event_date employer                            total_cost groups_invited      
+##   &lt;chr&gt;      &lt;chr&gt;                                    &lt;dbl&gt; &lt;chr&gt;               
+## 1 02/25/26   Washington Gas                          15004. House Economic Matt…
+## 2 02/17/26   Constellation                            8131. Senate Education, E…
+## 3 01/27/26   Constellation                            7000  House Environment a…
+## 4 01/29/26   Choptank Electric Cooperative, Inc.      6110. House Environment a…
+## 5 02/18/26   Pepco Holdings, LLC.                     5626. House Environment a…
+## 6 02/12/26   Baltimore Gas and Electric Company       5480. House Environment a…
+## 7 02/24/26   Pepco Holdings, LLC.                     2890. Senate Education, E…
+## 8 03/04/26   Baltimore Gas and Electric Company       2589. Senate Education, E…
+## 9 01/20/26   Chesapeake Utilities Corporation         2313. Senate Education, E…</code></pre>
+<hr />
+</div>
+</div>
+<div id="part-ii-additional-analysis" class="section level1">
+<h1>PART II — ADDITIONAL ANALYSIS</h1>
+<p><em>Supporting calculations not directly cited in the story but used
+to verify numbers, check sourcing, or provide background
+context.</em></p>
+<hr />
+<div id="extra-1-total-spending-year-ending-october-2026-partial" class="section level2">
+<h2>Extra-1: Total Spending, Year Ending October 2026 (Partial)</h2>
+<pre class="r"><code>total_2526 &lt;- events_2526 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;Year ending October 2026 (partial — retrieved April 27, 2026)\n&quot;)</code></pre>
+<pre><code>## Year ending October 2026 (partial — retrieved April 27, 2026)</code></pre>
+<pre class="r"><code>cat(&quot;Total events:  &quot;, total_2526$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Total events:   235</code></pre>
+<pre class="r"><code>cat(&quot;Total spending: $&quot;, format(total_2526$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total spending: $ 2,017,067.14</code></pre>
+<hr />
+</div>
+<div id="extra-2-2025-session-total-and-enteee-share" class="section level2">
+<h2>Extra-2: 2025 Session Total and ENT/EEE Share</h2>
+<pre class="r"><code>session_2025 &lt;- events_2425 %&gt;%
+  filter(event_date_parsed &gt;= session_2025_start,
+         event_date_parsed &lt;= session_2025_end)
+
+session_2025_total &lt;- session_2025 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+ent_eee_2025_session &lt;- session_2025 %&gt;%
+  filter(str_detect(groups_invited, regex(energy_cmte_pattern, ignore_case = TRUE)))
+
+ent_eee_2025_total &lt;- ent_eee_2025_session %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;2025 session total\n&quot;)</code></pre>
+<pre><code>## 2025 session total</code></pre>
+<pre class="r"><code>cat(&quot;Events:  &quot;, session_2025_total$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:   208</code></pre>
+<pre class="r"><code>cat(&quot;Total:   $&quot;, format(session_2025_total$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:   $ 1,479,075.90</code></pre>
+<pre class="r"><code>cat(&quot;\nENT/EEE share of 2025 session\n&quot;)</code></pre>
+<pre><code>## 
+## ENT/EEE share of 2025 session</code></pre>
+<pre class="r"><code>cat(&quot;Events:  &quot;, ent_eee_2025_total$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:   27</code></pre>
+<pre class="r"><code>cat(&quot;Total:   $&quot;, format(ent_eee_2025_total$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:   $ 127,717.29</code></pre>
+<pre class="r"><code>cat(&quot;Share:   &quot;, round(ent_eee_2025_total$total_spending / session_2025_total$total_spending * 100, 1), &quot;%\n&quot;)</code></pre>
+<pre><code>## Share:    8.6 %</code></pre>
+<hr />
+</div>
+<div id="extra-3-utility-spending-all-events-during-2025-session" class="section level2">
+<h2>Extra-3: Utility Spending — All Events During 2025 Session</h2>
+<pre class="r"><code>utility_all_2025 &lt;- session_2025 %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE)))
+
+utility_all_total_2025 &lt;- utility_all_2025 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE),
+    avg_per_event  = mean(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;Utility spending on ALL events, 2025 session:\n&quot;)</code></pre>
+<pre><code>## Utility spending on ALL events, 2025 session:</code></pre>
+<pre class="r"><code>cat(&quot;Events:        &quot;, utility_all_total_2025$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:         10</code></pre>
+<pre class="r"><code>cat(&quot;Total:          $&quot;, format(utility_all_total_2025$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:          $ 50,692.23</code></pre>
+<pre class="r"><code>cat(&quot;Avg per event:  $&quot;, format(utility_all_total_2025$avg_per_event, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Avg per event:  $ 5,069.223</code></pre>
+<pre class="r"><code>cat(&quot;\nBreakdown by utility:\n&quot;)</code></pre>
+<pre><code>## 
+## Breakdown by utility:</code></pre>
+<pre class="r"><code>utility_all_2025 %&gt;%
+  group_by(employer) %&gt;%
+  summarize(
+    events = n(),
+    total  = sum(total_cost, na.rm = TRUE)
+  ) %&gt;%
+  arrange(desc(total)) %&gt;%
+  print()</code></pre>
+<pre><code>## # A tibble: 5 × 3
+##   employer                            events  total
+##   &lt;chr&gt;                                &lt;int&gt;  &lt;dbl&gt;
+## 1 Baltimore Gas and Electric Company       3 12834.
+## 2 Choptank Electric Cooperative, Inc.      2 12000 
+## 3 Washington Gas                           1  9716.
+## 4 Constellation                            2  8751.
+## 5 Pepco Holdings, LLC.                     2  7392.</code></pre>
+<hr />
+</div>
+<div id="extra-4-bge-pepco-washington-gas-constellation-on-enteee-2024-2025" class="section level2">
+<h2>Extra-4: BGE, Pepco, Washington Gas &amp; Constellation on ENT/EEE —
+2024-2025</h2>
+<p><em>Used to investigate the original $70,000 claim, which turned out
+to be total utility spending on all events (not ENT/EEE specific). See
+data notes.</em></p>
+<pre class="r"><code>four_utilities_pattern &lt;- &quot;BGE|Baltimore Gas and Electric|Pepco|Washington Gas|Constellation&quot;
+
+# Full year
+four_utilities_ent_eee_2425 &lt;- ent_eee_2425 %&gt;%
+  filter(str_detect(employer, regex(four_utilities_pattern, ignore_case = TRUE)))
+
+four_utilities_total &lt;- four_utilities_ent_eee_2425 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;BGE, Pepco, Washington Gas &amp; Constellation — ENT/EEE, 2024-2025 full year:\n&quot;)</code></pre>
+<pre><code>## BGE, Pepco, Washington Gas &amp; Constellation — ENT/EEE, 2024-2025 full year:</code></pre>
+<pre class="r"><code>cat(&quot;Events:  &quot;, four_utilities_total$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:   6</code></pre>
+<pre class="r"><code>cat(&quot;Total:    $&quot;, format(four_utilities_total$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:    $ 35,072.74</code></pre>
+<pre class="r"><code># Session window only
+four_utilities_ent_eee_2425_session &lt;- four_utilities_ent_eee_2425 %&gt;%
+  filter(event_date_parsed &gt;= session_2025_start,
+         event_date_parsed &lt;= session_2025_end)
+
+four_utilities_session_total &lt;- four_utilities_ent_eee_2425_session %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;\nSession window only (Jan 6 – Apr 11, 2025):\n&quot;)</code></pre>
+<pre><code>## 
+## Session window only (Jan 6 – Apr 11, 2025):</code></pre>
+<pre class="r"><code>cat(&quot;Events:  &quot;, four_utilities_session_total$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:   5</code></pre>
+<pre class="r"><code>cat(&quot;Total:    $&quot;, format(four_utilities_session_total$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:    $ 24,685.95</code></pre>
+<hr />
+</div>
+<div id="extra-5-bge-pepco-washington-gas-constellation-on-enteee-2025-2026" class="section level2">
+<h2>Extra-5: BGE, Pepco, Washington Gas &amp; Constellation on ENT/EEE —
+2025-2026</h2>
+<pre class="r"><code>ent_eee_2526 &lt;- events_2526 %&gt;%
+  filter(str_detect(groups_invited, regex(energy_cmte_pattern, ignore_case = TRUE)))
+
+four_utilities_ent_eee_2526 &lt;- ent_eee_2526 %&gt;%
+  filter(str_detect(employer, regex(four_utilities_pattern, ignore_case = TRUE)))
+
+four_utilities_total_2526 &lt;- four_utilities_ent_eee_2526 %&gt;%
+  summarize(
+    total_events   = n(),
+    total_spending = sum(total_cost, na.rm = TRUE)
+  )
+
+cat(&quot;BGE, Pepco, Washington Gas &amp; Constellation\n&quot;)</code></pre>
+<pre><code>## BGE, Pepco, Washington Gas &amp; Constellation</code></pre>
+<pre class="r"><code>cat(&quot;ENT/EEE events, full year Nov 2025 – Oct 2026 (partial, retrieved Apr 27):\n&quot;)</code></pre>
+<pre><code>## ENT/EEE events, full year Nov 2025 – Oct 2026 (partial, retrieved Apr 27):</code></pre>
+<pre class="r"><code>cat(&quot;Events:  &quot;, four_utilities_total_2526$total_events, &quot;\n&quot;)</code></pre>
+<pre><code>## Events:   7</code></pre>
+<pre class="r"><code>cat(&quot;Total:   $&quot;, format(four_utilities_total_2526$total_spending, big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## Total:   $ 46,719.33</code></pre>
+<pre class="r"><code>cat(&quot;\nBreakdown by utility:\n&quot;)</code></pre>
+<pre><code>## 
+## Breakdown by utility:</code></pre>
+<pre class="r"><code>four_utilities_ent_eee_2526 %&gt;%
+  group_by(employer) %&gt;%
+  summarize(
+    events = n(),
+    total  = sum(total_cost, na.rm = TRUE)
+  ) %&gt;%
+  arrange(desc(total)) %&gt;%
+  print()</code></pre>
+<pre><code>## # A tibble: 4 × 3
+##   employer                           events  total
+##   &lt;chr&gt;                               &lt;int&gt;  &lt;dbl&gt;
+## 1 Constellation                           2 15131.
+## 2 Washington Gas                          1 15004.
+## 3 Pepco Holdings, LLC.                    2  8516.
+## 4 Baltimore Gas and Electric Company      2  8069.</code></pre>
+<hr />
+</div>
+<div id="extra-6-all-utilities-on-any-event-2024-2025-full-year" class="section level2">
+<h2>Extra-6: All Utilities on Any Event — 2024-2025 Full Year</h2>
+<p><em>This is what the original Python script calculated and mislabeled
+as “utility spending on ENT/EEE.” The ~$70K figure came from this, not
+from ENT/EEE-specific filtering.</em></p>
+<pre class="r"><code>all_utilities_any_event_2425 &lt;- events_2425 %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE)))
+
+all_utilities_any_event_2425 %&gt;%
+  group_by(employer) %&gt;%
+  summarize(
+    events = n(),
+    total  = sum(total_cost, na.rm = TRUE)
+  ) %&gt;%
+  arrange(desc(total)) %&gt;%
+  print()</code></pre>
+<pre><code>## # A tibble: 6 × 3
+##   employer                             events  total
+##   &lt;chr&gt;                                 &lt;int&gt;  &lt;dbl&gt;
+## 1 Baltimore Gas and Electric Company        4 21464.
+## 2 Choptank Electric Cooperative, Inc.       2 12000 
+## 3 Constellation Energy Generation, LLC      1 10387.
+## 4 Washington Gas                            1  9716.
+## 5 Constellation                             2  8751.
+## 6 Pepco Holdings, LLC.                      2  7392.</code></pre>
+<pre class="r"><code>cat(&quot;\nTotal: $&quot;, format(sum(all_utilities_any_event_2425$total_cost, na.rm = TRUE), big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## 
+## Total: $ 69,709.37</code></pre>
+<hr />
+</div>
+<div id="extra-7-every-utility-event-on-enteee-both-years-every-row" class="section level2">
+<h2>Extra-7: Every Utility Event on ENT/EEE — Both Years, Every Row</h2>
+<pre class="r"><code>util_ent_eee_2425_all &lt;- events_2425 %&gt;%
+  filter(str_detect(groups_invited, regex(energy_cmte_pattern, ignore_case = TRUE))) %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE))) %&gt;%
+  mutate(year = &quot;2024-2025&quot;) %&gt;%
+  select(year, event_date, employer, organization_firm, total_cost, groups_invited)
+
+util_ent_eee_2526_all &lt;- events_2526 %&gt;%
+  filter(str_detect(groups_invited, regex(energy_cmte_pattern, ignore_case = TRUE))) %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE))) %&gt;%
+  mutate(year = &quot;2025-2026&quot;) %&gt;%
+  select(year, event_date, employer, organization_firm, total_cost, groups_invited)
+
+util_ent_eee_both &lt;- bind_rows(util_ent_eee_2425_all, util_ent_eee_2526_all) %&gt;%
+  arrange(year, desc(total_cost))
+
+cat(&quot;=== EVERY UTILITY EVENT ON ENT/EEE ===\n&quot;)</code></pre>
+<pre><code>## === EVERY UTILITY EVENT ON ENT/EEE ===</code></pre>
+<pre class="r"><code>cat(&quot;2024-2025 events:&quot;, nrow(util_ent_eee_2425_all), &quot;\n&quot;)</code></pre>
+<pre><code>## 2024-2025 events: 7</code></pre>
+<pre class="r"><code>cat(&quot;2025-2026 events:&quot;, nrow(util_ent_eee_2526_all), &quot;\n&quot;)</code></pre>
+<pre><code>## 2025-2026 events: 9</code></pre>
+<pre class="r"><code>cat(&quot;Total events:&quot;, nrow(util_ent_eee_both), &quot;\n\n&quot;)</code></pre>
+<pre><code>## Total events: 16</code></pre>
+<pre class="r"><code>print(util_ent_eee_both, n = Inf)</code></pre>
+<pre><code>## # A tibble: 16 × 6
+##    year      event_date employer     organization_firm total_cost groups_invited
+##    &lt;chr&gt;     &lt;chr&gt;      &lt;chr&gt;        &lt;chr&gt;                  &lt;dbl&gt; &lt;chr&gt;         
+##  1 2024-2025 05/22/25   Constellati… Constellation En…     10387. House Economi…
+##  2 2024-2025 01/16/25   Washington … PerryJacobson          9716. House Economi…
+##  3 2024-2025 01/21/25   Choptank El… Choptank Electri…      7000  House Economi…
+##  4 2024-2025 02/20/25   Baltimore G… Baltimore Gas an…      4397. House Environ…
+##  5 2024-2025 02/06/25   Constellati… Capitol Strategi…      4200  Senate Educat…
+##  6 2024-2025 02/19/25   Pepco Holdi… Pepco Holdings, …      3298. Senate Educat…
+##  7 2024-2025 03/06/25   Baltimore G… Baltimore Gas an…      3075. Senate Educat…
+##  8 2025-2026 02/25/26   Washington … PerryJacobson         15004. House Economi…
+##  9 2025-2026 02/17/26   Constellati… Capitol Strategi…      8131. Senate Educat…
+## 10 2025-2026 01/27/26   Constellati… Capitol Strategi…      7000  House Environ…
+## 11 2025-2026 01/29/26   Choptank El… Choptank Electri…      6110. House Environ…
+## 12 2025-2026 02/18/26   Pepco Holdi… Pepco Holdings, …      5626. House Environ…
+## 13 2025-2026 02/12/26   Baltimore G… Baltimore Gas an…      5480. House Environ…
+## 14 2025-2026 02/24/26   Pepco Holdi… Pepco Holdings, …      2890. Senate Educat…
+## 15 2025-2026 03/04/26   Baltimore G… Baltimore Gas an…      2589. Senate Educat…
+## 16 2025-2026 01/20/26   Chesapeake … Chesapeake Utili…      2313. Senate Educat…</code></pre>
+<pre class="r"><code>cat(&quot;\n2024-2025 total: $&quot;, format(sum(util_ent_eee_2425_all$total_cost, na.rm = TRUE), big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## 
+## 2024-2025 total: $ 42,072.74</code></pre>
+<pre class="r"><code>cat(&quot;2025-2026 total: $&quot;, format(sum(util_ent_eee_2526_all$total_cost, na.rm = TRUE), big.mark = &quot;,&quot;, nsmall = 2), &quot;\n&quot;)</code></pre>
+<pre><code>## 2025-2026 total: $ 55,142.39</code></pre>
+<hr />
+</div>
+<div id="extra-8-date-parsing-check-utility-events" class="section level2">
+<h2>Extra-8: Date Parsing Check — Utility Events</h2>
+<pre class="r"><code># Confirm no utility events have unparsed dates that would be silently dropped
+events_2526 %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE))) %&gt;%
+  select(event_date, event_date_parsed, employer, total_cost) %&gt;%
+  arrange(event_date_parsed) %&gt;%
+  print(n = Inf)</code></pre>
+<pre><code>## # A tibble: 10 × 4
+##    event_date event_date_parsed employer                            total_cost
+##    &lt;chr&gt;      &lt;date&gt;            &lt;chr&gt;                                    &lt;dbl&gt;
+##  1 01/20/26   2026-01-20        Chesapeake Utilities Corporation         2313.
+##  2 01/27/26   2026-01-27        Constellation                            7000 
+##  3 01/29/26   2026-01-29        Choptank Electric Cooperative, Inc.      6110.
+##  4 02/04/26   2026-02-04        Constellation                            5496.
+##  5 02/12/26   2026-02-12        Baltimore Gas and Electric Company       5480.
+##  6 02/17/26   2026-02-17        Constellation                            8131.
+##  7 02/18/26   2026-02-18        Pepco Holdings, LLC.                     5626.
+##  8 02/24/26   2026-02-24        Pepco Holdings, LLC.                     2890.
+##  9 02/25/26   2026-02-25        Washington Gas                          15004.
+## 10 03/04/26   2026-03-04        Baltimore Gas and Electric Company       2589.</code></pre>
+<hr />
+</div>
+</div>
+<div id="part-iii-visualizations" class="section level1">
+<h1>PART III — VISUALIZATIONS</h1>
+<p><em>All charts are built in Datawrapper or Flourish. This section
+generates the CSVs and prints row previews for verification. All files
+saved to <code>rstudio_output/</code>.</em></p>
+<hr />
+<div id="viz-1-whos-buying-dinner-for-energy-lawmakers-horizontal-bar" class="section level2">
+<h2>VIZ-1: Who’s Buying Dinner for Energy Lawmakers (Horizontal
+Bar)</h2>
+<p><strong>Tool:</strong> Datawrapper <strong>Headline:</strong> Who’s
+buying dinner for Maryland’s energy lawmakers? <strong>Subhead:</strong>
+Engineering firms, farm groups and utilities led spending on House ENT
+and Senate EEE committee events in 2026 <strong>Source:</strong>
+Maryland State Ethics Commission <strong>Byline:</strong> Zaka Hossain,
+Capital News Service <strong>Footnote:</strong> Note: Rifkin Weiner
+Livingston and G.S. Proctor &amp; Associates, Inc. are lobbying firms
+that do not identify the organizations they represent in their event
+reports filed with the Maryland State Ethics Commission. A portion of
+G.S. Proctor &amp; Associates, Inc.’s spending could be on behalf of any
+of their clients, which include Pepco and Washington Gas.
+<strong>Colors:</strong> Gas/Electric Utility = #d85a30 | Renewable
+Energy = #1d9e75 | Other Interest = #888780</p>
+<pre class="r"><code>renewable_pattern &lt;- &quot;solar|wind|renewable|MAREC|CHESSA|Chaberton|Advanced Energy&quot;
+
+# Check that Rifkin Weiner Livingston and G.S. Proctor appear in the data
+# before using them in the footnote
+cat(&quot;Footnote firm check:\n&quot;)</code></pre>
+<pre><code>## Footnote firm check:</code></pre>
+<pre class="r"><code>ent_eee_2026 %&gt;%
+  filter(str_detect(organization_firm,
+                    regex(&quot;Rifkin|Proctor&quot;, ignore_case = TRUE))) %&gt;%
+  select(event_date, employer, organization_firm, total_cost) %&gt;%
+  print()</code></pre>
+<pre><code>## # A tibble: 3 × 4
+##   event_date employer                        organization_firm        total_cost
+##   &lt;chr&gt;      &lt;chr&gt;                           &lt;chr&gt;                         &lt;dbl&gt;
+## 1 02/03/26   Rifkin Weiner Livingston LLC    Rifkin Weiner Livingsto…     15856.
+## 2 01/27/26   Rifkin Weiner Livingston LLC    Rifkin Weiner Livingsto…      8357.
+## 3 01/28/26   G.S. Proctor &amp; Associates, Inc. G.S. Proctor &amp; Associat…      4635.</code></pre>
+<pre class="r"><code>top_spenders_ent_eee &lt;- ent_eee_2026 %&gt;%
+  mutate(
+    category = case_when(
+      str_detect(employer, regex(utility_pattern,   ignore_case = TRUE)) ~ &quot;Gas/Electric Utility&quot;,
+      str_detect(employer, regex(renewable_pattern, ignore_case = TRUE)) ~ &quot;Renewable Energy&quot;,
+      TRUE ~ &quot;Other Interest&quot;
+    )
+  ) %&gt;%
+  group_by(employer, category) %&gt;%
+  summarize(
+    total_spent = sum(total_cost, na.rm = TRUE),
+    num_events  = n(),
+    .groups = &quot;drop&quot;
+  ) %&gt;%
+  arrange(desc(total_spent)) %&gt;%
+  slice_head(n = 15)
+
+write_csv(top_spenders_ent_eee, &quot;rstudio_output/output_top_spenders_ent_eee.csv&quot;)
+
+cat(&quot;\nPreview (output_top_spenders_ent_eee.csv):\n&quot;)</code></pre>
+<pre><code>## 
+## Preview (output_top_spenders_ent_eee.csv):</code></pre>
+<pre class="r"><code>print(top_spenders_ent_eee)</code></pre>
+<pre><code>## # A tibble: 15 × 4
+##    employer                                      category total_spent num_events
+##    &lt;chr&gt;                                         &lt;chr&gt;          &lt;dbl&gt;      &lt;int&gt;
+##  1 Rifkin Weiner Livingston LLC                  Other I…      24214.          2
+##  2 Constellation                                 Gas/Ele…      15131.          2
+##  3 Washington Gas                                Gas/Ele…      15004.          1
+##  4 Mid-Atlantic Renewable Energy Coalition Acti… Renewab…       9331.          2
+##  5 Chesapeake Solar &amp; Storage Association (CHES… Renewab…       9152.          2
+##  6 Pepco Holdings, LLC.                          Gas/Ele…       8516.          2
+##  7 Baltimore Gas and Electric Company            Gas/Ele…       8069.          2
+##  8 Retail Energy Supply Association              Other I…       8015.          2
+##  9 Maryland Transportation Builders and Materia… Other I…       6803.          1
+## 10 Coalition for Community Solar Access, Inc.    Renewab…       6678.          2
+## 11 Choptank Electric Cooperative, Inc.           Gas/Ele…       6110.          1
+## 12 Uber Technologies, Inc.                       Other I…       5944.          1
+## 13 Delmarva Chicken Association                  Other I…       5534.          2
+## 14 Lifebridge Health, Inc.                       Other I…       5181.          1
+## 15 Maryland - American Water Company, Inc.       Other I…       5083.          1</code></pre>
+<pre class="r"><code>cat(&quot;Saved: rstudio_output/output_top_spenders_ent_eee.csv\n&quot;)</code></pre>
+<pre><code>## Saved: rstudio_output/output_top_spenders_ent_eee.csv</code></pre>
+<hr />
+</div>
+<div id="viz-2-utilities-ramp-up-spending-on-energy-committees-2025-vs.-2026-session-grouped-bar" class="section level2">
+<h2>VIZ-2: Utilities Ramp Up Spending on Energy Committees, 2025
+vs. 2026 Session (Grouped Bar)</h2>
+<p><strong>Tool:</strong> Datawrapper <strong>Headline:</strong> Utility
+companies ramp up wining and dining in 2026 <strong>Subhead:</strong>
+Major utilities increased lobbying event spending on energy committees
+during the 2026 session compared to the 2025 session
+<strong>Source:</strong> Maryland State Ethics Commission
+<strong>Byline:</strong> Zaka Hossain, Capital News Service
+<strong>Footer:</strong> 2025 session: week of Jan. 6 – week of Apr. 11.
+2026 session: week of Jan. 12 – week of Apr. 17. Data as of April 27,
+2026. <strong>Colors:</strong> 2025 session = #888780 (gray) | 2026
+session = #d85a30 (orange) <strong>Format for Datawrapper:</strong> Wide
+— one row per utility, columns for each session</p>
+<pre class="r"><code># 2025 SESSION only — filter 2024-2025 data to session window, then ENT/EEE, then utilities
+ent_eee_2025_session_viz &lt;- events_2425 %&gt;%
+  filter(event_date_parsed &gt;= session_2025_start,
+         event_date_parsed &lt;= session_2025_end) %&gt;%
+  filter(str_detect(groups_invited, regex(energy_cmte_pattern, ignore_case = TRUE))) %&gt;%
+  filter(str_detect(employer, regex(utility_pattern, ignore_case = TRUE)))
+
+utility_session_2025 &lt;- ent_eee_2025_session_viz %&gt;%
+  mutate(utility = standardize_utility(employer)) %&gt;%
+  group_by(utility) %&gt;%
+  summarize(`2025 session` = sum(total_cost, na.rm = TRUE), .groups = &quot;drop&quot;)
+
+# 2026 SESSION — already filtered in definitions chunk
+utility_session_2026 &lt;- utility_ent_eee_2026 %&gt;%
+  mutate(utility = standardize_utility(employer)) %&gt;%
+  group_by(utility) %&gt;%
+  summarize(`2026 session` = sum(total_cost, na.rm = TRUE), .groups = &quot;drop&quot;)
+
+# Wide format for Datawrapper
+utility_comparison_wide &lt;- full_join(utility_session_2025, utility_session_2026,
+                                     by = &quot;utility&quot;) %&gt;%
+  mutate(across(where(is.numeric), ~replace_na(., 0))) %&gt;%
+  arrange(desc(`2026 session`))
+
+write_csv(utility_comparison_wide, &quot;rstudio_output/output_utility_comparison.csv&quot;)
+
+cat(&quot;Preview (output_utility_comparison.csv):\n&quot;)</code></pre>
+<pre><code>## Preview (output_utility_comparison.csv):</code></pre>
+<pre class="r"><code>print(utility_comparison_wide)</code></pre>
+<pre><code>## # A tibble: 6 × 3
+##   utility              `2025 session` `2026 session`
+##   &lt;chr&gt;                         &lt;dbl&gt;          &lt;dbl&gt;
+## 1 Constellation                 4200          15131.
+## 2 Washington Gas                9716.         15004.
+## 3 Pepco                         3298.          8516.
+## 4 BGE                           7472.          8069.
+## 5 Choptank Electric             7000           6110.
+## 6 Chesapeake Utilities             0           2313.</code></pre>
+<pre class="r"><code>cat(&quot;Saved: rstudio_output/output_utility_comparison.csv\n&quot;)</code></pre>
+<pre><code>## Saved: rstudio_output/output_utility_comparison.csv</code></pre>
+<hr />
+</div>
+<div id="viz-3-who-paid-for-energy-committee-dinners-sector-breakdown-donut" class="section level2">
+<h2>VIZ-3: Who Paid for Energy Committee Dinners (Sector Breakdown
+Donut)</h2>
+<p><strong>Tool:</strong> Datawrapper <strong>Status:</strong> May keep
+in story <strong>Headline:</strong> Utilities accounted for nearly a
+third of energy committee dinner spending <strong>Subhead:</strong> Gas
+and electric companies spent $55,142 of the $172,878 lobbyists reported
+on House ENT and Senate EEE events during the 2026 session
+<strong>Source:</strong> Maryland State Ethics Commission
+<strong>Byline:</strong> Zaka Hossain, Capital News Service
+<strong>Colors:</strong> Gas/Electric Utility = #d85a30 | Renewable
+Energy = #1d9e75 | Other Interest = #888780</p>
+<pre class="r"><code>ent_eee_sector_breakdown &lt;- ent_eee_2026 %&gt;%
+  mutate(
+    sector = case_when(
+      str_detect(employer, regex(utility_pattern,   ignore_case = TRUE)) ~ &quot;Gas/Electric Utility&quot;,
+      str_detect(employer, regex(renewable_pattern, ignore_case = TRUE)) ~ &quot;Renewable Energy&quot;,
+      TRUE ~ &quot;Other Interest&quot;
+    )
+  ) %&gt;%
+  group_by(sector) %&gt;%
+  summarize(total_spent = sum(total_cost, na.rm = TRUE), .groups = &quot;drop&quot;) %&gt;%
+  mutate(percentage = round(total_spent / sum(total_spent) * 100, 1)) %&gt;%
+  arrange(desc(total_spent))
+
+write_csv(ent_eee_sector_breakdown, &quot;rstudio_output/output_ent_eee_sector_breakdown.csv&quot;)
+
+cat(&quot;Preview (output_ent_eee_sector_breakdown.csv):\n&quot;)</code></pre>
+<pre><code>## Preview (output_ent_eee_sector_breakdown.csv):</code></pre>
+<pre class="r"><code>print(ent_eee_sector_breakdown)</code></pre>
+<pre><code>## # A tibble: 3 × 3
+##   sector               total_spent percentage
+##   &lt;chr&gt;                      &lt;dbl&gt;      &lt;dbl&gt;
+## 1 Other Interest            88657.       51.3
+## 2 Gas/Electric Utility      55142.       31.9
+## 3 Renewable Energy          29079.       16.8</code></pre>
+<pre class="r"><code>cat(&quot;Saved: rstudio_output/output_ent_eee_sector_breakdown.csv\n&quot;)</code></pre>
+<pre><code>## Saved: rstudio_output/output_ent_eee_sector_breakdown.csv</code></pre>
+<hr />
+</div>
+<div id="viz-4-the-session-dinner-calendar-scatter-timeline" class="section level2">
+<h2>VIZ-4: The Session Dinner Calendar (Scatter Timeline)</h2>
+<p><strong>Tool:</strong> Flourish <strong>Headline:</strong> The
+session dinner calendar <strong>Subhead:</strong> Energy lobbyists
+hosted 34 events for ENT and EEE members during the 2026 session as the
+Utility RELIEF Act advanced <strong>Source:</strong> Maryland State
+Ethics Commission • Data as of April 27, 2026 <strong>Byline:</strong>
+Zaka Hossain, Capital News Service <strong>X-axis:</strong> event_date |
+<strong>Y-axis:</strong> category (three horizontal bands) |
+<strong>Size:</strong> total_cost | <strong>Color:</strong> category
+<strong>Colors:</strong> Gas/Electric Utility = #d85a30 | Renewable
+Energy = #1d9e75 | Other Interest = #888780 <strong>Annotations
+(vertical lines):</strong> ENT hearing :: 03/03/26 | House passes ::
+03/17/26 | EEE hearing :: 03/25/26</p>
+<pre class="r"><code>timeline_ent_eee &lt;- ent_eee_2026 %&gt;%
+  mutate(
+    category = case_when(
+      str_detect(employer, regex(utility_pattern,   ignore_case = TRUE)) ~ &quot;Gas/Electric Utility&quot;,
+      str_detect(employer, regex(renewable_pattern, ignore_case = TRUE)) ~ &quot;Renewable Energy&quot;,
+      TRUE ~ &quot;Other Interest&quot;
+    ),
+    target = case_when(
+      str_detect(groups_invited, regex(ent_pattern, ignore_case = TRUE)) &amp;
+        str_detect(groups_invited, regex(eee_pattern, ignore_case = TRUE)) ~ &quot;Both ENT &amp; EEE&quot;,
+      str_detect(groups_invited, regex(ent_pattern, ignore_case = TRUE))   ~ &quot;House ENT only&quot;,
+      TRUE                                                                  ~ &quot;Senate EEE only&quot;
+    )
+  ) %&gt;%
+  select(event_date, employer, organization_firm,
+         total_cost, category, target, groups_invited) %&gt;%
+  arrange(event_date)
+
+write_csv(timeline_ent_eee, &quot;rstudio_output/output_ent_eee_timeline_2026.csv&quot;)
+
+cat(&quot;Preview (output_ent_eee_timeline_2026.csv):\n&quot;)</code></pre>
+<pre><code>## Preview (output_ent_eee_timeline_2026.csv):</code></pre>
+<pre class="r"><code>print(timeline_ent_eee, n = Inf)</code></pre>
+<pre><code>## # A tibble: 34 × 7
+##    event_date employer              organization_firm total_cost category target
+##    &lt;chr&gt;      &lt;chr&gt;                 &lt;chr&gt;                  &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt; 
+##  1 01/20/26   Chesapeake Utilities… Chesapeake Utili…      2313. Gas/Ele… Senat…
+##  2 01/21/26   Uber Technologies, I… Compass Governme…      5944. Other I… House…
+##  3 01/22/26   Delmarva Chicken Ass… Delmarva Chicken…      3335. Other I… House…
+##  4 01/22/26   Retail Energy Supply… Percy Public Aff…      3106. Other I… Senat…
+##  5 01/27/26   Constellation         Capitol Strategi…      7000  Gas/Ele… House…
+##  6 01/27/26   Rifkin Weiner Living… Rifkin Weiner Li…      8357. Other I… Senat…
+##  7 01/28/26   G.S. Proctor &amp; Assoc… G.S. Proctor &amp; A…      4635. Other I… Senat…
+##  8 01/29/26   Choptank Electric Co… Choptank Electri…      6110. Gas/Ele… Both …
+##  9 02/03/26   Rifkin Weiner Living… Rifkin Weiner Li…     15856. Other I… House…
+## 10 02/03/26   Kress Hammen Governm… Kress Hammen Gov…      4000  Other I… Senat…
+## 11 02/04/26   Chesapeake Solar &amp; S… Compass Governme…      5283. Renewab… House…
+## 12 02/05/26   Coalition for Commun… Compass Governme…      3001. Renewab… Senat…
+## 13 02/05/26   Mechanical Contracto… Cornerstone Gove…      3362. Other I… House…
+## 14 02/10/26   Maryland Transportat… Evans &amp; Associat…      6803. Other I… House…
+## 15 02/10/26   Maryland Tech Council Schwartz, Metz, …      4234. Other I… Senat…
+## 16 02/11/26   Retail Energy Supply… Percy Public Aff…      4909. Other I… House…
+## 17 02/12/26   Chesapeake Solar &amp; S… Compass Governme…      3868. Renewab… Senat…
+## 18 02/12/26   Baltimore Gas and El… Baltimore Gas an…      5480. Gas/Ele… House…
+## 19 02/17/26   Coalition for High P… Bellamy Genn Gro…      4313. Other I… House…
+## 20 02/17/26   Constellation         Capitol Strategi…      8131. Gas/Ele… Senat…
+## 21 02/18/26   Pepco Holdings, LLC.  Pepco Holdings, …      5626. Gas/Ele… House…
+## 22 02/18/26   Mid-Atlantic Renewab… Compass Governme…      3759. Renewab… Senat…
+## 23 02/19/26   Nature Conservancy, … The Nature Conse…      2320. Other I… Both …
+## 24 02/24/26   Pepco Holdings, LLC.  Pepco Holdings, …      2890. Gas/Ele… Senat…
+## 25 02/24/26   Mid-Atlantic Renewab… Compass Governme…      5572. Renewab… House…
+## 26 02/25/26   Washington Gas        PerryJacobson         15004. Gas/Ele… Senat…
+## 27 02/26/26   Maryland - American … Compass Governme…      5083. Other I… House…
+## 28 03/03/26   Delmarva Chicken Ass… Delmarva Chicken…      2198. Other I… Senat…
+## 29 03/04/26   Baltimore Gas and El… Baltimore Gas an…      2589. Gas/Ele… Senat…
+## 30 03/04/26   Lifebridge Health, I… LifeBridge Health      5181. Other I… Senat…
+## 31 03/05/26   Chaberton Energy      Funk &amp; Bolton, P…      3918. Renewab… House…
+## 32 03/10/26   Coalition for Commun… Compass Governme…      3677. Renewab… House…
+## 33 03/11/26   Maryland Chamber of … Maryland Chamber…      4645. Other I… House…
+## 34 03/25/26   Pica &amp; Associates, L… Pica &amp; Associate…       375  Other I… Senat…
+## # ℹ 1 more variable: groups_invited &lt;chr&gt;</code></pre>
+<pre class="r"><code>cat(&quot;Saved: rstudio_output/output_ent_eee_timeline_2026.csv\n&quot;)</code></pre>
+<pre><code>## Saved: rstudio_output/output_ent_eee_timeline_2026.csv</code></pre>
+<hr />
+</div>
+<div id="viz-5-event-frequency-during-the-2026-session-bar" class="section level2">
+<h2>VIZ-5: Event Frequency During the 2026 Session (Bar)</h2>
+<p><strong>Tool:</strong> Datawrapper <strong>Headline:</strong>
+Lobbyists hosted a dinner or reception for legislators nearly every two
+days during the 2026 session <strong>Subhead:</strong> Spending on
+lobbyist-funded meals and receptions for Maryland legislators fluctuated
+throughout the 90-day legislative session <strong>Source:</strong>
+Maryland State Ethics Commission <strong>Byline:</strong> Zaka Hossain,
+Capital News Service <strong>Footer:</strong> Week of Jan. 12 – week of
+Apr. 17, 2026. Each bar represents one event day; height = total
+spending that day.</p>
+<pre class="r"><code>session_cal &lt;- session_2026 %&gt;%
+  group_by(event_date_parsed) %&gt;%
+  summarize(
+    num_events     = n(),
+    total_spending = sum(total_cost, na.rm = TRUE),
+    .groups = &quot;drop&quot;
+  ) %&gt;%
+  complete(
+    event_date_parsed = seq.Date(session_2026_start, session_2026_end, by = &quot;day&quot;),
+    fill = list(num_events = 0, total_spending = 0)
   ) %&gt;%
   mutate(
-    change_pct = round((`total_spent_2025-2026` - `total_spent_2024-2025`) / `total_spent_2024-2025` * 100, 1)
+    has_event       = num_events &gt; 0,
+    # Format date as string for Datawrapper
+    date_label      = format(event_date_parsed, &quot;%m/%d/%Y&quot;)
   ) %&gt;%
-  arrange(desc(`total_spent_2025-2026`))
+  select(date_label, event_date_parsed, num_events, total_spending, has_event)
 
-knitr::kable(committee_comparison, 
-             caption = &quot;Committee Spending Comparison&quot;,
-             format.args = list(big.mark = &quot;,&quot;))</code></pre>
-<table style="width:100%;">
-<caption>Committee Spending Comparison</caption>
+write_csv(session_cal, &quot;rstudio_output/output_session_events_by_date.csv&quot;)
+
+cat(&quot;Preview — event days only:\n&quot;)</code></pre>
+<pre><code>## Preview — event days only:</code></pre>
+<pre class="r"><code>session_cal %&gt;%
+  filter(has_event) %&gt;%
+  print(n = Inf)</code></pre>
+<pre><code>## # A tibble: 49 × 5
+##    date_label event_date_parsed num_events total_spending has_event
+##    &lt;chr&gt;      &lt;date&gt;                 &lt;int&gt;          &lt;dbl&gt; &lt;lgl&gt;    
+##  1 01/14/2026 2026-01-14                 8         97399. TRUE     
+##  2 01/15/2026 2026-01-15                 6         19828. TRUE     
+##  3 01/20/2026 2026-01-20                 7         30763. TRUE     
+##  4 01/21/2026 2026-01-21                 8         42745. TRUE     
+##  5 01/22/2026 2026-01-22                11         52069. TRUE     
+##  6 01/26/2026 2026-01-26                 1             0  TRUE     
+##  7 01/27/2026 2026-01-27                 5         36277. TRUE     
+##  8 01/28/2026 2026-01-28                 9         56596. TRUE     
+##  9 01/29/2026 2026-01-29                 6         25586. TRUE     
+## 10 01/31/2026 2026-01-31                 1           290. TRUE     
+## 11 02/02/2026 2026-02-02                 1          3109. TRUE     
+## 12 02/03/2026 2026-02-03                 8        106495. TRUE     
+## 13 02/04/2026 2026-02-04                 8         40858. TRUE     
+## 14 02/05/2026 2026-02-05                 7         83757. TRUE     
+## 15 02/09/2026 2026-02-09                 1          2390. TRUE     
+## 16 02/10/2026 2026-02-10                 7         22851. TRUE     
+## 17 02/11/2026 2026-02-11                 8         29391. TRUE     
+## 18 02/12/2026 2026-02-12                 6         28141. TRUE     
+## 19 02/13/2026 2026-02-13                 1         17582. TRUE     
+## 20 02/16/2026 2026-02-16                 1        103606. TRUE     
+## 21 02/17/2026 2026-02-17                 9         53380. TRUE     
+## 22 02/18/2026 2026-02-18                 8         69151. TRUE     
+## 23 02/19/2026 2026-02-19                 7         34002. TRUE     
+## 24 02/23/2026 2026-02-23                 1         20468. TRUE     
+## 25 02/24/2026 2026-02-24                 8         39692. TRUE     
+## 26 02/25/2026 2026-02-25                10         61876. TRUE     
+## 27 02/26/2026 2026-02-26                 5         27410. TRUE     
+## 28 03/02/2026 2026-03-02                 3         23625. TRUE     
+## 29 03/03/2026 2026-03-03                 3          8624. TRUE     
+## 30 03/04/2026 2026-03-04                11         50840. TRUE     
+## 31 03/05/2026 2026-03-05                 5         23664  TRUE     
+## 32 03/09/2026 2026-03-09                 1          3203. TRUE     
+## 33 03/10/2026 2026-03-10                 6         28219. TRUE     
+## 34 03/11/2026 2026-03-11                 4         22852. TRUE     
+## 35 03/12/2026 2026-03-12                 3          3796. TRUE     
+## 36 03/15/2026 2026-03-15                 1          1224. TRUE     
+## 37 03/16/2026 2026-03-16                 1          6580. TRUE     
+## 38 03/18/2026 2026-03-18                 2          7664. TRUE     
+## 39 03/19/2026 2026-03-19                 1          1900  TRUE     
+## 40 03/21/2026 2026-03-21                 1        259374  TRUE     
+## 41 03/23/2026 2026-03-23                 1          4672. TRUE     
+## 42 03/24/2026 2026-03-24                 1         19200  TRUE     
+## 43 03/25/2026 2026-03-25                 5          9274. TRUE     
+## 44 03/28/2026 2026-03-28                 1         87703. TRUE     
+## 45 04/01/2026 2026-04-01                 2          4317. TRUE     
+## 46 04/08/2026 2026-04-08                 1          9275. TRUE     
+## 47 04/10/2026 2026-04-10                 1           180  TRUE     
+## 48 04/13/2026 2026-04-13                 5         46506. TRUE     
+## 49 04/15/2026 2026-04-15                 1          1500  TRUE</code></pre>
+<pre class="r"><code>cat(&quot;\nTotal event days:&quot;, sum(session_cal$has_event), &quot;out of&quot;, nrow(session_cal), &quot;session days\n&quot;)</code></pre>
+<pre><code>## 
+## Total event days: 49 out of 96 session days</code></pre>
+<pre class="r"><code>cat(&quot;Saved: rstudio_output/output_session_events_by_date.csv\n&quot;)</code></pre>
+<pre><code>## Saved: rstudio_output/output_session_events_by_date.csv</code></pre>
+<hr />
+</div>
+</div>
+<div id="part-iv-summary" class="section level1">
+<h1>PART IV — SUMMARY</h1>
+<div id="key-numbers-story-vs.-data" class="section level2">
+<h2>Key Numbers: Story vs. Data</h2>
+<pre class="r"><code># NOTE TO PROF: This table shows side-by-side what the story says versus
+# what the data shows. Figures not in our dataset (e.g., the 1999 historical
+# figure) come from published Ethics Commission annual reports.
+
+cornerstone_note &lt;- if (nrow(cornerstone_apr8) &gt; 0) {
+  paste0(&quot;$&quot;, format(cornerstone_apr8$total_cost[1], big.mark = &quot;,&quot;, nsmall = 2), &quot; — confirmed in data&quot;)
+} else {
+  &quot;Not yet filed — verify when filings are complete&quot;
+}
+
+summary_df &lt;- tibble(
+  `Story figure` = c(
+    &quot;Cornerstone dinner Apr 8: $9,275.11&quot;,
+    &quot;2026 session frequency: nearly every two days&quot;,
+    &quot;Year ending Oct 2025 total: $2.3 million&quot;,
+    &quot;Utility spending, 2026 session (all events): $60,638&quot;,
+    &quot;Avg cost per utility event: ~$6,064&quot;,
+    &quot;Utility spending on ENT/EEE, 2026 session: $55,142&quot;,
+    &quot;Total ENT/EEE spending, 2026 session: $172,878&quot;,
+    &quot;1999 receptions total: $684,958&quot;
+  ),
+  `What the data shows` = c(
+    cornerstone_note,
+    paste0(&quot;Every &quot;, round(session_days / unique_event_dates, 1), &quot; days&quot;),
+    paste0(&quot;$&quot;, format(total_2425$total_spending, big.mark = &quot;,&quot;, nsmall = 2)),
+    paste0(&quot;$&quot;, format(utility_all_total_2026$total_spending, big.mark = &quot;,&quot;, nsmall = 2),
+           &quot; (&quot;, utility_all_total_2026$total_events, &quot; events)&quot;),
+    paste0(&quot;$&quot;, format(utility_all_total_2026$avg_per_event, big.mark = &quot;,&quot;, nsmall = 2)),
+    paste0(&quot;$&quot;, format(utility_ent_eee_total_2026$total_spending, big.mark = &quot;,&quot;, nsmall = 2),
+           &quot; (&quot;, utility_ent_eee_total_2026$total_events, &quot; events)&quot;),
+    paste0(&quot;$&quot;, format(ent_eee_all_total_2026$total_spending, big.mark = &quot;,&quot;, nsmall = 2),
+           &quot; (&quot;, ent_eee_all_total_2026$total_events, &quot; events)&quot;),
+    &quot;From 1999 Ethics Commission annual report — not in our dataset&quot;
+  )
+)
+
+kable(summary_df,
+      col.names = c(&quot;Story figure&quot;, &quot;What the data shows&quot;),
+      caption = &quot;Fact-check summary — confirm each figure before publication&quot;)</code></pre>
+<table>
+<caption>Fact-check summary — confirm each figure before
+publication</caption>
 <colgroup>
-<col width="22%" />
-<col width="17%" />
-<col width="17%" />
-<col width="16%" />
-<col width="16%" />
-<col width="8%" />
+<col width="45%" />
+<col width="54%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th align="left">committee</th>
-<th align="right">total_spent_2024-2025</th>
-<th align="right">total_spent_2025-2026</th>
-<th align="right">num_events_2024-2025</th>
-<th align="right">num_events_2025-2026</th>
-<th align="right">change_pct</th>
+<th align="left">Story figure</th>
+<th align="left">What the data shows</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">General Assembly</td>
-<td align="right">1,340,140.8</td>
-<td align="right">644,328.96</td>
-<td align="right">94</td>
-<td align="right">69</td>
-<td align="right">-51.9</td>
+<td align="left">Cornerstone dinner Apr 8: $9,275.11</td>
+<td align="left">$9,275.11 — confirmed in data</td>
 </tr>
 <tr class="even">
-<td align="left">Senate Finance</td>
-<td align="right">172,102.0</td>
-<td align="right">396,340.11</td>
-<td align="right">29</td>
-<td align="right">32</td>
-<td align="right">130.3</td>
+<td align="left">2026 session frequency: nearly every two days</td>
+<td align="left">Every 2 days</td>
 </tr>
 <tr class="odd">
-<td align="left">Senate Budget &amp; Tax</td>
-<td align="right">193,707.8</td>
-<td align="right">363,341.07</td>
-<td align="right">33</td>
-<td align="right">25</td>
-<td align="right">87.6</td>
+<td align="left">Year ending Oct 2025 total: $2.3 million</td>
+<td align="left">$2,303,980.49</td>
 </tr>
 <tr class="even">
-<td align="left">House Appropriations</td>
-<td align="right">126,108.9</td>
-<td align="right">304,559.72</td>
-<td align="right">17</td>
-<td align="right">11</td>
-<td align="right">141.5</td>
+<td align="left">Utility spending, 2026 session (all events):
+$60,638</td>
+<td align="left">$60,638.65 (10 events)</td>
 </tr>
 <tr class="odd">
-<td align="left">House ENT</td>
-<td align="right">170,943.1</td>
-<td align="right">161,096.94</td>
-<td align="right">14</td>
-<td align="right">20</td>
-<td align="right">-5.8</td>
+<td align="left">Avg cost per utility event: ~$6,064</td>
+<td align="left">$6,063.865</td>
 </tr>
 <tr class="even">
-<td align="left">Senate EEE</td>
-<td align="right">197,850.5</td>
-<td align="right">143,556.73</td>
-<td align="right">23</td>
-<td align="right">19</td>
-<td align="right">-27.4</td>
+<td align="left">Utility spending on ENT/EEE, 2026 session: $55,142</td>
+<td align="left">$55,142.39 (9 events)</td>
 </tr>
 <tr class="odd">
-<td align="left">House Economic Matters</td>
-<td align="right">218,311.0</td>
-<td align="right">95,399.92</td>
-<td align="right">26</td>
-<td align="right">17</td>
-<td align="right">-56.3</td>
+<td align="left">Total ENT/EEE spending, 2026 session: $172,878</td>
+<td align="left">$172,878.41 (34 events)</td>
 </tr>
 <tr class="even">
-<td align="left">House Ways &amp; Means</td>
-<td align="right">124,855.2</td>
-<td align="right">86,331.49</td>
-<td align="right">13</td>
-<td align="right">13</td>
-<td align="right">-30.9</td>
-</tr>
-<tr class="odd">
-<td align="left">House Judiciary</td>
-<td align="right">104,429.0</td>
-<td align="right">33,849.79</td>
-<td align="right">10</td>
-<td align="right">9</td>
-<td align="right">-67.6</td>
-</tr>
-<tr class="even">
-<td align="left">Senate Judicial Proceedings</td>
-<td align="right">120,509.5</td>
-<td align="right">33,002.21</td>
-<td align="right">13</td>
-<td align="right">8</td>
-<td align="right">-72.6</td>
+<td align="left">1999 receptions total: $684,958</td>
+<td align="left">From 1999 Ethics Commission annual report — not in our
+dataset</td>
 </tr>
 </tbody>
 </table>
+<hr />
 </div>
-<div id="long-format-for-visualization" class="section level2">
-<h2>Long Format for Visualization</h2>
-<pre class="r"><code>committee_long &lt;- bind_rows(spending_2425, spending_2526) %&gt;%
-  arrange(desc(total_spent))
+<div id="output-files-generated" class="section level2">
+<h2>Output Files Generated</h2>
+<pre class="r"><code>cat(&quot;Files in rstudio_output/:\n&quot;)</code></pre>
+<pre><code>## Files in rstudio_output/:</code></pre>
+<pre class="r"><code>list.files(&quot;rstudio_output/&quot;) %&gt;%
+  sort() %&gt;%
+  cat(sep = &quot;\n&quot;)</code></pre>
+<pre><code>## exploratory_visualizations
+## output_ent_eee_sector_breakdown.csv
+## output_ent_eee_timeline_2026.csv
+## output_session_events_by_date.csv
+## output_top_spenders_ent_eee.csv
+## output_utility_comparison.csv</code></pre>
+<hr />
+</div>
+<div id="data-notes" class="section level2">
+<h2>Data Notes</h2>
+<pre class="r"><code>cat(&quot;
+DATA CAVEATS:
 
-knitr::kable(committee_long, 
-             caption = &quot;Committee Spending by Period&quot;,
-             format.args = list(big.mark = &quot;,&quot;))</code></pre>
-<table>
-<caption>Committee Spending by Period</caption>
-<thead>
-<tr class="header">
-<th align="left">committee</th>
-<th align="right">total_spent</th>
-<th align="right">num_events</th>
-<th align="left">period</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">General Assembly</td>
-<td align="right">1,340,140.83</td>
-<td align="right">94</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="even">
-<td align="left">General Assembly</td>
-<td align="right">644,328.96</td>
-<td align="right">69</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="odd">
-<td align="left">Senate Finance</td>
-<td align="right">396,340.11</td>
-<td align="right">32</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="even">
-<td align="left">Senate Budget &amp; Tax</td>
-<td align="right">363,341.07</td>
-<td align="right">25</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="odd">
-<td align="left">House Appropriations</td>
-<td align="right">304,559.72</td>
-<td align="right">11</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="even">
-<td align="left">House Economic Matters</td>
-<td align="right">218,311.01</td>
-<td align="right">26</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="odd">
-<td align="left">Senate EEE</td>
-<td align="right">197,850.52</td>
-<td align="right">23</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="even">
-<td align="left">Senate Budget &amp; Tax</td>
-<td align="right">193,707.77</td>
-<td align="right">33</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="odd">
-<td align="left">Senate Finance</td>
-<td align="right">172,101.95</td>
-<td align="right">29</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="even">
-<td align="left">House ENT</td>
-<td align="right">170,943.14</td>
-<td align="right">14</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="odd">
-<td align="left">House ENT</td>
-<td align="right">161,096.94</td>
-<td align="right">20</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="even">
-<td align="left">Senate EEE</td>
-<td align="right">143,556.73</td>
-<td align="right">19</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="odd">
-<td align="left">House Appropriations</td>
-<td align="right">126,108.95</td>
-<td align="right">17</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="even">
-<td align="left">House Ways &amp; Means</td>
-<td align="right">124,855.22</td>
-<td align="right">13</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="odd">
-<td align="left">Senate Judicial Proceedings</td>
-<td align="right">120,509.50</td>
-<td align="right">13</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="even">
-<td align="left">House Judiciary</td>
-<td align="right">104,428.97</td>
-<td align="right">10</td>
-<td align="left">2024-2025</td>
-</tr>
-<tr class="odd">
-<td align="left">House Economic Matters</td>
-<td align="right">95,399.92</td>
-<td align="right">17</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="even">
-<td align="left">House Ways &amp; Means</td>
-<td align="right">86,331.49</td>
-<td align="right">13</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="odd">
-<td align="left">House Judiciary</td>
-<td align="right">33,849.79</td>
-<td align="right">9</td>
-<td align="left">2025-2026</td>
-</tr>
-<tr class="even">
-<td align="left">Senate Judicial Proceedings</td>
-<td align="right">33,002.21</td>
-<td align="right">8</td>
-<td align="left">2025-2026</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div id="export-csvs" class="section level2">
-<h2>Export CSVs</h2>
-<pre class="r"><code>write_csv(committee_comparison, &quot;output_committee_comparison.csv&quot;)
-write_csv(committee_long, &quot;output_committee_spending_long.csv&quot;)</code></pre>
-</div>
-<div id="summary" class="section level2">
-<h2>Summary</h2>
-<pre class="r"><code># Total spending by period
-totals &lt;- bind_rows(spending_2425, spending_2526) %&gt;%
-  group_by(period) %&gt;%
-  summarize(
-    total_events = sum(num_events),
-    total_spending = sum(total_spent)
-  )
+1. DATA CURRENCY: The 2025-2026 file was retrieved April 27, 2026 and
+   captures events through Sine Die (April 13, 2026). 
 
-knitr::kable(totals, 
-             caption = &quot;Overall Totals by Period&quot;,
-             format.args = list(big.mark = &quot;,&quot;))</code></pre>
-<table>
-<caption>Overall Totals by Period</caption>
-<thead>
-<tr class="header">
-<th align="left">period</th>
-<th align="right">total_events</th>
-<th align="right">total_spending</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">2024-2025</td>
-<td align="right">272</td>
-<td align="right">2,768,958</td>
-</tr>
-<tr class="even">
-<td align="left">2025-2026</td>
-<td align="right">223</td>
-<td align="right">2,261,807</td>
-</tr>
-</tbody>
-</table>
+2. MULTI-COMMITTEE EVENTS: When one event invites multiple committees
+   (e.g., &#39;House Appropriations; Senate Budget and Taxation&#39;), the full
+   cost is attributed to each committee in our count. Costs are NOT split
+   proportionally. Committee totals can therefore overlap.
+
+3. UTILITY PATTERN MATCHING: We match on partial strings (e.g., &#39;BGE&#39;
+   catches &#39;Baltimore Gas and Electric Company&#39;). Spot-check the employer
+   column in output CSVs against actual filings if any numbers seem off.
+
+5. CORNERSTONE DINNER: The $9,275.11 came from a physical receipt.
+   It matches the filing in our dataset -- this isnt a caveat anymore.
+
+6. BAD DATE RECORD: League of Women Voters of Howard County has event_date
+   &#39;01/10/02&#39;, which parses as 2002-01-10 — a likely two-digit year typo.
+   The event costs $524. Because the parsed date falls outside all session
+   and reporting-year windows, this record is excluded from every filter
+   in this analysis and does not materially affect any totals. The
+   out-of-range check in the load-data chunk flags it on every knit.
+&quot;)</code></pre>
+<pre><code>## 
+## DATA CAVEATS:
+## 
+## 1. DATA CURRENCY: The 2025-2026 file was retrieved April 27, 2026 and
+##    captures events through Sine Die (April 13, 2026). 
+## 
+## 2. MULTI-COMMITTEE EVENTS: When one event invites multiple committees
+##    (e.g., &#39;House Appropriations; Senate Budget and Taxation&#39;), the full
+##    cost is attributed to each committee in our count. Costs are NOT split
+##    proportionally. Committee totals can therefore overlap.
+## 
+## 3. UTILITY PATTERN MATCHING: We match on partial strings (e.g., &#39;BGE&#39;
+##    catches &#39;Baltimore Gas and Electric Company&#39;). Spot-check the employer
+##    column in output CSVs against actual filings if any numbers seem off.
+## 
+## 5. CORNERSTONE DINNER: The $9,275.11 came from a physical receipt.
+##    It matches the filing in our dataset -- this isnt a caveat anymore.
+## 
+## 6. BAD DATE RECORD: League of Women Voters of Howard County has event_date
+##    &#39;01/10/02&#39;, which parses as 2002-01-10 — a likely two-digit year typo.
+##    The event costs $524. Because the parsed date falls outside all session
+##    and reporting-year windows, this record is excluded from every filter
+##    in this analysis and does not materially affect any totals. The
+##    out-of-range check in the load-data chunk flags it on every knit.</code></pre>
+<hr />
+<p><em>Analysis by Zaka Hossain, Capital News Service. Generated April
+28, 2026.</em></p>
+</div>
 </div>
 
 
