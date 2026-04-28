@@ -709,7 +709,7 @@ cat("Saved: rstudio_output/output_utility_comparison.csv\n")
 ## VIZ-3: Who Paid for Energy Committee Dinners (Sector Breakdown Donut)
 
 **Tool:** Datawrapper
-**Status:** May keep in story
+**Status:** NOT to be included in story.
 **Headline:** Utilities accounted for nearly a third of energy committee dinner spending
 **Subhead:** Gas and electric companies spent $55,142 of the $172,878 lobbyists reported on House ENT and Senate EEE events during the 2026 session
 **Source:** Maryland State Ethics Commission
@@ -781,6 +781,7 @@ cat("Saved: rstudio_output/output_ent_eee_timeline_2026.csv\n")
 ## VIZ-5: Event Frequency During the 2026 Session (Bar)
 
 **Tool:** Datawrapper
+**Status:** NOT to be included in story.
 **Headline:** Lobbyists hosted a dinner or reception for legislators nearly every two days during the 2026 session
 **Subhead:** Spending on lobbyist-funded meals and receptions for Maryland legislators fluctuated throughout the 90-day legislative session
 **Source:** Maryland State Ethics Commission
