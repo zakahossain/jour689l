@@ -20,7 +20,7 @@ var config = {
     accessToken: 'pk.eyJ1IjoiemFrYWhvc3NhaW4iLCJhIjoiY21vOWo2ODNpMGE1YjJxb21sYTZpMDg0eCJ9.I06SXuT3FOqYCPTpo7m1hA',
     showMarkers: false,
     markerColor: '#3FB1CE',
-    googlePlacesKey: 'AIzaSyBkCmVeMxl2zNBsCkTDQWbhX4QRw8fJKjU',  // Add your Google Places API key here
+    googlePlacesKey: 'AIzaSyBkCmVeMxl2zNBsCkTDQWbhX4QRw8fJKjU',
     theme: 'light',
     alignment: 'left',
     title: 'Annapolis Lobbying Venues',
