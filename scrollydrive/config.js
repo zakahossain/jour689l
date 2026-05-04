@@ -18,8 +18,9 @@ var followPitch = 30;
 var config = {
     style: 'mapbox://styles/mapbox/light-v11',
     accessToken: 'pk.eyJ1IjoiemFrYWhvc3NhaW4iLCJhIjoiY21vOWo2ODNpMGE1YjJxb21sYTZpMDg0eCJ9.I06SXuT3FOqYCPTpo7m1hA',
-    showMarkers: true,
+    showMarkers: false,
     markerColor: '#3FB1CE',
+    googlePlacesKey: 'AIzaSyBkCmVeMxl2zNBsCkTDQWbhX4QRw8fJKjU',  // Add your Google Places API key here
     theme: 'light',
     alignment: 'left',
     title: 'Annapolis Lobbying Venues',
@@ -115,11 +116,11 @@ var config = {
         },
         {
             id: 'drive-slide-3',
-            title: 'Ruth\'s Chris Steak House',
+            title: 'Lewnes\' Steakhouse',
             image: '',
-            description: 'Premium steakhouse known for consistent high-end experience and signature sizzling plates. Upscale atmosphere suited to influence-building dinners.',
+            description: 'Highest-rated venue (4.8★) with classic fine dining atmosphere. Multiple private rooms enable confidential meetings. Old-school elegant without being stuffy.',
             location: {
-                center: [-76.4816, 38.9720],
+                center: [-76.4822, 38.9716],
                 zoom: 16,
                 pitch: 30,
                 bearing: 0
@@ -139,11 +140,11 @@ var config = {
         },
         {
             id: 'drive-slide-4',
-            title: 'Lewnes\' Steakhouse',
+            title: 'Ruth\'s Chris Steak House',
             image: '',
-            description: 'Highest-rated venue (4.8★) with classic fine dining atmosphere. Multiple private rooms enable confidential meetings. Old-school elegant without being stuffy.',
+            description: 'Premium steakhouse known for consistent high-end experience and signature sizzling plates. Upscale atmosphere suited to influence-building dinners.',
             location: {
-                center: [-76.4822, 38.9716],
+                center: [-76.4816, 38.9720],
                 zoom: 16,
                 pitch: 30,
                 bearing: 0
