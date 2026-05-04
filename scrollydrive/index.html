@@ -135,27 +135,48 @@ margin: 0 auto;
 /* ── Restaurant popup tooltip ── */
 .restaurant-popup .mapboxgl-popup-content {
     padding: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+    width: 280px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-.tip-inner { font-family: sans-serif; }
+.restaurant-popup .mapboxgl-popup-close-button {
+    color: #fff;
+    font-size: 20px;
+    padding: 4px 8px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    z-index: 2;
+}
+.tip-inner { background: #fff; }
 .tip-photo {
     width: 100%; height: 160px;
     object-fit: cover;
     display: block;
+    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
 }
 .tip-photo-placeholder {
-    width: 100%; height: 60px;
-    background: #f4f4f4;
+    width: 100%; height: 160px;
+    background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; color: #888;
+    font-size: 11px; color: #999;
+    font-style: italic;
+}
+.tip-body {
+    padding: 14px 16px 16px;
 }
 .tip-name {
-    padding: 10px 12px;
-    font-weight: 600;
-    font-size: 13px;
-    color: #222;
+    font-weight: 700;
+    font-size: 16px;
+    color: #1a1a1a;
+    margin: 0 0 8px;
+    line-height: 1.25;
+}
+.tip-greek {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #555;
+    margin: 0;
 }
 </style>
 </head>
@@ -272,17 +293,14 @@ marker.setLngLat(config.chapters[0].location.center).addTo(map);
 }
 var scroller = scrollama();
 function handleStepProgress(response) {
-let stepProgress;
-if (response.element.id.slice(0,5) === 'drive') {
+if (response.element.id.slice(0,5) !== 'drive') return;
+if (geojsonPoint.features[0].geometry.coordinates.length === 0) return;
 let driveSlideNum = parseInt(response.element.id.slice(-1));
-if (driveSlideNum === 0) {
-map.setLayoutProperty('animatedLine', 'visibility', 'visible');
-stepProgress = Math.round(response.progress*driveSmoothness);
-        } else {
-stepProgress = Math.round(response.progress*driveSmoothness+driveSmoothness*driveSlideNum);
-        }
+if (map.getLayer('animatedLine')) {
+    map.setLayoutProperty('animatedLine', 'visibility', 'visible');
+}
+let stepProgress = Math.round(response.progress*driveSmoothness + driveSmoothness*driveSlideNum);
 changeCenter(stepProgress);
-    }
 }
 var mapLoaded = false;
 var routesLoaded = false;
@@ -318,7 +336,7 @@ map.addLayer({
 id: 'animatedPoint',
 type: 'circle',
 source: 'pointSource',
-paint: { 'circle-radius': 5, 'circle-opacity': 1, 'circle-color': '#00000' }
+paint: { 'circle-radius': 6, 'circle-opacity': 1, 'circle-color': '#c0392b', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 }
     });
 addRouteLayers();
 scroller
@@ -359,31 +377,25 @@ window.addEventListener('resize', scroller.resize);
 loadGooglePlaces(config.googlePlacesKey);
 
 // ── Iframe scroll bridge ──────────────────────────────────────────────────
-// When embedded in an iframe, the parent page can send scroll progress
-// via postMessage so the animation fires even if the user scrolls the
-// outer article rather than scrolling inside the iframe.
+// Parent page sends scroll progress via postMessage so the animation
+// fires even if the user scrolls the outer article rather than the iframe.
 (function() {
-    var driveSteps = config.chapters.filter(function(c) {
-        return c.id.slice(0, 5) === 'drive';
-    });
-
     window.addEventListener('message', function(evt) {
         if (!evt.data || evt.data.type !== 'scrollydrive-progress') return;
-        // ratio: 0 = top of story section, 1 = bottom
+        if (geojsonPoint.features[0].geometry.coordinates.length === 0) return;
+        if (!map.getLayer('animatedLine')) return;
+
         var ratio = Math.max(0, Math.min(1, evt.data.ratio));
         var totalDrive = driveSlides * driveSmoothness;
         var idx = Math.round(ratio * totalDrive);
-        if (geojsonPoint.features[0].geometry.coordinates.length > 0) {
-            // Activate the matching drive step visually
-            var slideNum = Math.min(Math.floor(ratio * driveSlides), driveSlides - 1);
-            document.querySelectorAll('.step').forEach(function(el) {
-                el.classList.remove('active');
-            });
-            var target = document.getElementById('drive-slide-' + slideNum);
-            if (target) target.classList.add('active');
-            changeCenter(idx);
-            map.setLayoutProperty('animatedLine', 'visibility', 'visible');
-        }
+
+        var slideNum = Math.min(Math.floor(ratio * driveSlides), driveSlides - 1);
+        document.querySelectorAll('.step').forEach(function(el) { el.classList.remove('active'); });
+        var target = document.getElementById('drive-slide-' + slideNum);
+        if (target) target.classList.add('active');
+
+        map.setLayoutProperty('animatedLine', 'visibility', 'visible');
+        changeCenter(idx);
     });
 })();
 </script>
