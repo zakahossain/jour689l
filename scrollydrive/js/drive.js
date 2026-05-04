@@ -10,13 +10,16 @@ var geojsonPoint = {
     }]
 };
 
+// Greeked text — placeholder until real copy arrives
+var GREEK = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.";
+
 // Order matches drive-slide-0 through drive-slide-4 after the Lewnes'/Ruth's Chris swap
 var restaurantInfo = [
-    { name: "Harry Browne's Restaurant",  coords: [-76.4898587, 38.9793638], query: "Harry Browne's Restaurant Annapolis MD" },
-    { name: "Acqua al 2",                 coords: [-76.4921331, 38.9784478], query: "Acqua al 2 Annapolis MD" },
-    { name: "The Choptank",               coords: [-76.4863128, 38.9769477], query: "The Choptank Annapolis MD" },
-    { name: "Lewnes' Steakhouse",         coords: [-76.4822483, 38.971587],  query: "Lewnes Steakhouse Annapolis MD" },
-    { name: "Ruth's Chris Steak House",   coords: [-76.4815871, 38.9720243], query: "Ruth's Chris Steak House Annapolis MD" }
+    { name: "Harry Browne's Restaurant",  coords: [-76.4898587, 38.9793638], query: "Harry Browne's Restaurant Annapolis MD",      greek: GREEK },
+    { name: "Acqua al 2",                 coords: [-76.4921331, 38.9784478], query: "Acqua al 2 Annapolis MD",                     greek: GREEK },
+    { name: "The Choptank",               coords: [-76.4863128, 38.9769477], query: "The Choptank Annapolis MD",                   greek: GREEK },
+    { name: "Lewnes' Steakhouse",         coords: [-76.4822483, 38.971587],  query: "Lewnes Steakhouse Annapolis MD",              greek: GREEK },
+    { name: "Ruth's Chris Steak House",   coords: [-76.4815871, 38.9720243], query: "Ruth's Chris Steak House Annapolis MD",       greek: GREEK }
 ];
 
 var placePhotos = {};
@@ -87,40 +90,68 @@ function addPuckMarkers() {
 
 // ── Google Places photo tooltips ────────────────────────────────────────────
 
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+        return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+}
+
+function tooltipHtml(info, photoUrl) {
+    var photo = photoUrl
+        ? '<img src="' + photoUrl + '" class="tip-photo" alt="' + escapeHtml(info.name) + '">'
+        : '<div class="tip-photo-placeholder">' +
+          (config.googlePlacesKey ? 'Loading photo…' : 'No photo') + '</div>';
+    return '<div class="tip-inner">' + photo +
+           '<div class="tip-body">' +
+             '<h4 class="tip-name">' + escapeHtml(info.name) + '</h4>' +
+             '<p class="tip-greek">' + escapeHtml(info.greek) + '</p>' +
+           '</div></div>';
+}
+
 function showTooltip(info) {
     if (activePopup) { activePopup.remove(); activePopup = null; }
 
-    var photoBlock = placePhotos[info.name]
-        ? '<img src="' + placePhotos[info.name] + '" class="tip-photo" alt="' + info.name + '">'
-        : '<div class="tip-photo-placeholder">' +
-          (config.googlePlacesKey ? 'Loading photo…' : 'Add Google Places key in config.js') +
-          '</div>';
-
-    var popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '280px', className: 'restaurant-popup' })
-        .setLngLat(info.coords)
-        .setHTML('<div class="tip-inner">' + photoBlock + '<div class="tip-name">' + info.name + '</div></div>')
-        .addTo(map);
+    var popup = new mapboxgl.Popup({
+        offset: 22,
+        closeButton: true,
+        maxWidth: '280px',
+        className: 'restaurant-popup'
+    })
+    .setLngLat(info.coords)
+    .setHTML(tooltipHtml(info, placePhotos[info.name]))
+    .addTo(map);
 
     activePopup = popup;
 
+    // Lazy-load the photo if we don't have it cached
     if (!placePhotos[info.name] && config.googlePlacesKey) {
         fetchAndCachePhoto(info).then(function(url) {
-            if (!url) return;
-            var imgEl = document.querySelector('.restaurant-popup .tip-photo-placeholder');
-            if (imgEl) {
-                var img = document.createElement('img');
-                img.src = url;
-                img.className = 'tip-photo';
-                img.alt = info.name;
-                imgEl.replaceWith(img);
+            if (!url || !activePopup) return;
+            // Re-render the popup with the photo (only if this popup is still open)
+            if (activePopup === popup) {
+                popup.setHTML(tooltipHtml(info, url));
             }
         });
     }
 }
 
+function waitForGoogle(timeout) {
+    return new Promise(function(resolve, reject) {
+        var start = Date.now();
+        (function check() {
+            if (typeof google !== 'undefined' && google.maps && google.maps.importLibrary) {
+                return resolve();
+            }
+            if (Date.now() - start > timeout) return reject(new Error('Google Maps load timeout'));
+            setTimeout(check, 100);
+        })();
+    });
+}
+
 async function fetchAndCachePhoto(info) {
-    if (!config.googlePlacesKey || typeof google === 'undefined') return null;
+    if (!config.googlePlacesKey) return null;
     try {
+        await waitForGoogle(8000);
         const { Place } = await google.maps.importLibrary('places');
         const { places } = await Place.searchByText({
             textQuery: info.query,
@@ -128,11 +159,12 @@ async function fetchAndCachePhoto(info) {
             locationBias: { lat: info.coords[1], lng: info.coords[0] },
             maxResultCount: 1
         });
-        if (places.length > 0 && places[0].photos && places[0].photos.length > 0) {
-            var url = places[0].photos[0].getURI({ maxWidth: 400 });
+        if (places && places.length > 0 && places[0].photos && places[0].photos.length > 0) {
+            var url = places[0].photos[0].getURI({ maxWidth: 600 });
             placePhotos[info.name] = url;
             return url;
         }
+        console.warn('No photo found for ' + info.name);
     } catch (err) {
         console.error('Places API error for ' + info.name + ':', err);
     }
