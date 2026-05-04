@@ -65,15 +65,20 @@ function createPuckMarker(info) {
     pulse2.className = 'puck-ring puck-ring-delay';
     var core = document.createElement('div');
     core.className = 'puck-core';
+    var hit = document.createElement('div');
+    hit.className = 'puck-hit';
 
     el.appendChild(pulse1);
     el.appendChild(pulse2);
     el.appendChild(core);
+    el.appendChild(hit);  // hit target on top, captures all clicks
 
-    el.addEventListener('click', function(e) {
-        e.stopPropagation();
+    function open(e) {
+        if (e) { e.stopPropagation(); e.preventDefault(); }
         showTooltip(info);
-    });
+    }
+    hit.addEventListener('click', open);
+    hit.addEventListener('touchend', open);
 
     var marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat(info.coords)
