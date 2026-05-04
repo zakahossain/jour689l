@@ -6,6 +6,15 @@
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v2.0.0/mapbox-gl.css' rel='stylesheet' />
+<script>
+// Loaded lazily once config.googlePlacesKey is known (see bottom of body)
+function loadGooglePlaces(key) {
+    if (!key) return;
+    var s = document.createElement('script');
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + key + '&libraries=places&v=beta';
+    document.head.appendChild(s);
+}
+</script>
 <script src="https://unpkg.com/intersection-observer@0.5.1/intersection-observer.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 <script src='https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js'></script>
@@ -89,6 +98,65 @@ width: 90vw;
 margin: 0 auto;
             }
         }
+
+/* ── Radiating puck markers ── */
+.puck-marker {
+    width: 24px;
+    height: 24px;
+    position: relative;
+    cursor: pointer;
+}
+.puck-core {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #c0392b;
+    z-index: 2;
+    box-shadow: 0 0 0 2px #fff;
+}
+.puck-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: rgba(192, 57, 43, 0.45);
+    animation: puck-radiate 2.2s ease-out infinite;
+    z-index: 1;
+}
+.puck-ring-delay { animation-delay: 1.1s; }
+@keyframes puck-radiate {
+    0%   { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+}
+
+/* ── Restaurant popup tooltip ── */
+.restaurant-popup .mapboxgl-popup-content {
+    padding: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+.tip-inner { font-family: sans-serif; }
+.tip-photo {
+    width: 100%; height: 160px;
+    object-fit: cover;
+    display: block;
+}
+.tip-photo-placeholder {
+    width: 100%; height: 60px;
+    background: #f4f4f4;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: #888;
+}
+.tip-name {
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #222;
+}
 </style>
 </head>
 <body>
@@ -286,6 +354,38 @@ mapLoaded = true;
 initializeStory();
 });
 window.addEventListener('resize', scroller.resize);
+
+// Load Google Places API once config is available
+loadGooglePlaces(config.googlePlacesKey);
+
+// ── Iframe scroll bridge ──────────────────────────────────────────────────
+// When embedded in an iframe, the parent page can send scroll progress
+// via postMessage so the animation fires even if the user scrolls the
+// outer article rather than scrolling inside the iframe.
+(function() {
+    var driveSteps = config.chapters.filter(function(c) {
+        return c.id.slice(0, 5) === 'drive';
+    });
+
+    window.addEventListener('message', function(evt) {
+        if (!evt.data || evt.data.type !== 'scrollydrive-progress') return;
+        // ratio: 0 = top of story section, 1 = bottom
+        var ratio = Math.max(0, Math.min(1, evt.data.ratio));
+        var totalDrive = driveSlides * driveSmoothness;
+        var idx = Math.round(ratio * totalDrive);
+        if (geojsonPoint.features[0].geometry.coordinates.length > 0) {
+            // Activate the matching drive step visually
+            var slideNum = Math.min(Math.floor(ratio * driveSlides), driveSlides - 1);
+            document.querySelectorAll('.step').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            var target = document.getElementById('drive-slide-' + slideNum);
+            if (target) target.classList.add('active');
+            changeCenter(idx);
+            map.setLayoutProperty('animatedLine', 'visibility', 'visible');
+        }
+    });
+})();
 </script>
 </body>
 </html>
