@@ -101,35 +101,53 @@ margin: 0 auto;
 
 /* ── Radiating puck markers ── */
 .puck-marker {
-    width: 24px;
-    height: 24px;
+    width: 36px;
+    height: 36px;
     position: relative;
+    cursor: pointer !important;
+    pointer-events: auto;
+}
+.puck-hit {
+    /* invisible hit-target so the user can click anywhere on the puck */
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    z-index: 3;
     cursor: pointer;
 }
 .puck-core {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 12px; height: 12px;
+    width: 14px; height: 14px;
     border-radius: 50%;
     background: #c0392b;
     z-index: 2;
-    box-shadow: 0 0 0 2px #fff;
+    box-shadow: 0 0 0 2.5px #fff, 0 1px 3px rgba(0,0,0,0.3);
+    pointer-events: none;
+    transition: transform 0.15s ease;
+}
+.puck-marker:hover .puck-core {
+    transform: translate(-50%, -50%) scale(1.25);
 }
 .puck-ring {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%) scale(1);
-    width: 12px; height: 12px;
+    width: 14px; height: 14px;
     border-radius: 50%;
     background: rgba(192, 57, 43, 0.45);
     animation: puck-radiate 2.2s ease-out infinite;
     z-index: 1;
+    pointer-events: none;
 }
 .puck-ring-delay { animation-delay: 1.1s; }
 @keyframes puck-radiate {
     0%   { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
-    100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
 }
 
 /* ── Restaurant popup tooltip ── */
@@ -377,11 +395,21 @@ window.addEventListener('resize', scroller.resize);
 loadGooglePlaces(config.googlePlacesKey);
 
 // ── Iframe scroll bridge ──────────────────────────────────────────────────
-// Parent page sends scroll progress via postMessage so the animation
-// fires even if the user scrolls the outer article rather than the iframe.
 (function() {
+    var inIframe = window.self !== window.top;
+
+    function announceReady() {
+        if (!inIframe) return;
+        try { window.parent.postMessage({ type: 'scrollydrive-ready' }, '*'); } catch (e) {}
+    }
+
+    // Tell parent we're alive. Repeat until parent responds with progress.
+    var pingInterval = setInterval(announceReady, 500);
+    setTimeout(function() { clearInterval(pingInterval); }, 10000);
+
     window.addEventListener('message', function(evt) {
         if (!evt.data || evt.data.type !== 'scrollydrive-progress') return;
+        clearInterval(pingInterval);  // parent is talking, stop pinging
         if (geojsonPoint.features[0].geometry.coordinates.length === 0) return;
         if (!map.getLayer('animatedLine')) return;
 
@@ -397,6 +425,14 @@ loadGooglePlaces(config.googlePlacesKey);
         map.setLayoutProperty('animatedLine', 'visibility', 'visible');
         changeCenter(idx);
     });
+
+    // Also kick off ready-pings as soon as routes are loaded
+    var readyCheck = setInterval(function() {
+        if (geojsonPoint.features[0].geometry.coordinates.length > 0) {
+            clearInterval(readyCheck);
+            announceReady();
+        }
+    }, 200);
 })();
 </script>
 </body>
