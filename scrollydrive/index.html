@@ -276,7 +276,9 @@ if (idx === 0) {
 container.classList.add('active');
     }
 chapter.classList.add(config.theme);
+if (record.title || record.image || record.description) {
 container.appendChild(chapter);
+}
 features.appendChild(container);
 });
 story.appendChild(features);
