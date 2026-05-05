@@ -143,6 +143,9 @@ utility_pattern <- paste(
   collapse = "|"
 )
 
+
+
+
 # Helper: standardize utility names to short versions for charts
 standardize_utility <- function(name) {
   case_when(
@@ -231,7 +234,11 @@ if (nrow(cornerstone_apr8) > 0) {
 
 ## FC-2: Event Frequency During the 2026 Session
 
-> *"Closed-door dinners and private receptions for committees and the General Assembly happened nearly every two days during the 2026 legislative session that ended in mid-April, according to calendars sent to all legislators, obtained and analyzed by CNS."*
+#> *Suggested by Aidan and incorporated in the story: "The lobbyist-funded dinner was far from an isolated incident in Annapolis, according to hundreds of lobbying disclosures analyzed by Capital News Service.
+
+#The analysis reveals that lobbyists hosted over 200 closed-door dinners and private receptions for state lawmakers during the 2026 legislative session alone. Such events are permitted if either an entire committee or the General Assembly are invited.
+
+#CNS’s analysis encompassed the full 90-day legislative sessions in 2025 and 2026, along with the start and end weeks of the sessions to incorporate events that take place within them."*
 
 ```{r fc2-frequency}
 session_days       <- as.numeric(session_2026_end - session_2026_start) + 1
@@ -244,11 +251,25 @@ cat("Total events filed:", total_events_2026, "\n")
 cat("Average: one event day every", round(session_days / unique_event_dates, 1), "days\n")
 ```
 
+# ATH Note - Here's my suggestion:
+
+The lobbyist-funded dinner was far from an isolated incident in Annapolis, according to hundreds of lobbying disclosures analyzed by Capital News Service.
+
+The analysis reveals that lobbyists hosted over 200 closed-door dinners and private receptions for state lawmakers during the 2026 legislative session alone. Such events are permitted if either an entire committee or the General Assembly are invited.
+
+CNS’s analysis encompassed the full 90-day legislative sessions in 2025 and 2026, along with the start and end weeks of the sessions to incorporate events that take place within them.
+
+
+ALSO! Is it correct to say these numbers derive from legislative events calendars (which is what the article currently says), or lobbying disclosures (which is what I've suggested above)? The data comes from lobbying event reports, right? That's different than a legislative calendar, which is its own/different thing 
+
+
+
+
 ---
 
 ## FC-3: Total Spending, Year Ending October 2025
 
-> *"The most recent data available shows spending on those gatherings rose to $2.3 million for the year ending October 2025, according to a CNS analysis of the commission's lobbying records."*
+> *"The most recent data available shows spending on those gatherings rose to $2.3 million for the reporting year ending October 2025, according to a CNS analysis of the commission's lobbying records."*
 
 ```{r fc3-annual-total}
 # Note: Using 2024-2025 data because it is a complete reporting year.
@@ -264,11 +285,22 @@ cat("Total events:  ", total_2425$total_events, "\n")
 cat("Total spending: $", format(total_2425$total_spending, big.mark = ",", nsmall = 2), "\n")
 ```
 
+
+```{r}
+total_cost_nas_2425 <- events_2425 %>%
+  filter(is.na(total_cost))
+
+total_cost_nas_2425
+```
+
+#ATH Note: No NA's, "rose to $2.3 million" is good
+#ATH Note: small tweak, but say "reporting year" instead of just "year"
+
+
+
 ---
 
 ## FC-3b: Total Spending, Year Ending October 2026 (Partial)
-
-> *"The most recent data available shows spending on those gatherings rose to $2.3 million for the year ending October 2025, according to a CNS analysis of the commission's lobbying records."*
 
 *Note: The 2025-2026 reporting year is not yet complete — data retrieved April 27, 2026. This is for comparison only.*
 
@@ -293,7 +325,7 @@ cat("Change so far: $", format(total_2526$total_spending - total_2425$total_spen
 
 ## FC-4: Utility Spending — All Events During 2026 Session
 
-> *"Utility companies that do business in Maryland have reported spending $60,638 in total, or about $6,064 per event, during the 2026 legislative session, on committee and General Assembly dinners and receptions while these same bodies were deliberating over policies that affect the companies' profits and consumers' bills, according to the CNS analysis."*
+> Suggested by Aidan and incorporated in the story: *"Utility companies that do business in Maryland have reported spending a total of $60,638 on committee and General Assembly dinners and receptions during the 2026 legislative session, with individual event costs ranging from roughly $2,300 to over $15,000. The spending came while these same bodies were deliberating over policies that affect the companies' profits and consumers' bills, according to the CNS analysis."*
 
 ```{r fc4-utility-all-events-2026}
 utility_all_2026 <- session_2026 %>%
@@ -322,11 +354,24 @@ utility_all_2026 %>%
   print()
 ```
 
+
+#ATH Note: "or about $6,064 per event" -- either change to "an average of 6,064 per event"
+
+or, since the range is so wide (2312.59 to 15003.75), replace with something like:
+
+"Utility companies that do business in Maryland have reported spending a total of 60,638 on committee and General Assembly dinners and receptions during the 2026 legislative session, with individual events/costs ranging from roughly 2300 to over 15000. That spending came while these same bodies were deliberating over policies that affect the companies' profits and consumers' bills, according to the CNS analysis."
+
+ATH Note: I can't fact check this part: "that do business in Maryland," or this part: "That spending came while these same bodies were deliberating over policies that affect the companies' profits and consumers' bills, according to the CNS analysis."
+
 ---
 
 ## FC-5: Utility ENT/EEE Spending and Total ENT/EEE Spending, 2026 Session
 
-> *"During the 2026 legislative session, the utility companies BGE, Pepco, Washington Gas, Choptank Electric and Constellation reported spending $55,142 treating the House ENT and the Senate EEE committees — the two committees with jurisdiction over their businesses — to dinners and receptions, according to the CNS analysis. That figure represents nearly a third of the $172,878 lobbyists spent on meals and receptions for those two committees during the session."*
+> Chesapeake Utilities added as per Aidan's suggestion: *"During the 2026 legislative session, the utility companies BGE, Pepco, Washington Gas, Choptank Electric, Chesapeake Utilities  and Constellation reported spending $55,142 treating the House ENT and the Senate EEE committees — the two committees with jurisdiction over their businesses — to dinners and receptions, according to the CNS analysis. That figure represents nearly a third of the $172,878 lobbyists spent on meals and receptions for those two committees during the session."*
+
+
+#ATH Note: These numbers were calculated including Chesapeake Utilities' 2312.59 expenditure, but they aren't referenced above. Either include the company in your named list, or subtract that from your numbers and recalculate
+
 
 ```{r fc5-utility-ent-eee-and-total-2026}
 # Utility spending on ENT/EEE only
@@ -617,10 +662,9 @@ events_2526 %>%
 
 **Tool:** Datawrapper
 **Headline:** Who's buying dinner for Maryland's energy lawmakers?
-**Subhead:** Engineering firms, farm groups and utilities led spending on House ENT and Senate EEE committee events in 2026
-**Source:** Maryland State Ethics Commission
+**Subhead:** Engineering firms, farm groups and utilities led spending on the House Environment and Transportation Committee and the Senate Education, Energy, and the Environment Committee meals and receptions in 2026
 **Byline:** Zaka Hossain, Capital News Service
-**Footnote:** Note: Rifkin Weiner Livingston and G.S. Proctor & Associates, Inc. are lobbying firms that do not identify the organizations they represent in their event reports filed with the Maryland State Ethics Commission. A portion of G.S. Proctor & Associates, Inc.'s spending could be on behalf of any of their clients, which include Pepco and Washington Gas.
+**Footnote suggested by Aidan, now incorporated:** Note: Rifkin Weiner Livingston LLC and G.S. Proctor & Associates, Inc. are both lobbying firms. Rifkin Weiner Livingston LLC's disclosures for individual events split costs equally across a wide range of clients, which include energy firms such as Berkshire Hathaway Energy GT&S and Solar Landscape. G.S. Proctor & Associates does not list specific clients in most of its disclosures for these events. However, the firm represents energy companies such as Exelon Corporation, Pepco Holdings, Inc. and Washington Gas among other interests. Therefore, it is unclear to what extent those firms represented utility and energy interests at its events.
 **Colors:** Gas/Electric Utility = #d85a30 | Renewable Energy = #1d9e75 | Other Interest = #888780
 
 ```{r viz1-top-spenders}
@@ -659,16 +703,19 @@ print(top_spenders_ent_eee)
 cat("Saved: rstudio_output/output_top_spenders_ent_eee.csv\n")
 ```
 
+# ATH Note: I think this should be added back in: As a result, it is unclear which.
+# Zaka note: Aidan helped rewrite the footnote after this, it has been checked and incorporated.
+
 ---
 
-## VIZ-2: Utilities Ramp Up Spending on Energy Committees, 2025 vs. 2026 Session (Grouped Bar)
+## VIZ-2: Most utility companies ramped up wining and dining in 2026 (Grouped Bar)
 
 **Tool:** Datawrapper
-**Headline:** Utility companies ramp up wining and dining in 2026
-**Subhead:** Major utilities increased lobbying event spending on energy committees during the 2026 session compared to the 2025 session
+**Headline:** Most utility companies ramped up wining and dining in 2026
+**Subhead:** Five out of six major utilities increased lobbying event spending on energy committees during the 2026 legislative session
 **Source:** Maryland State Ethics Commission
 **Byline:** Zaka Hossain, Capital News Service
-**Footer:** 2025 session: week of Jan. 6 – week of Apr. 11. 2026 session: week of Jan. 12 – week of Apr. 17. Data as of April 27, 2026.
+**Footer:** 2025 session: Jan. 6 - Apr. 11. 2026 session: Jan. 12 - Apr. 17. The dates include the start and end weeks of the sessions to incorporate events that take place within them.
 **Colors:** 2025 session = #888780 (gray) | 2026 session = #d85a30 (orange)
 **Format for Datawrapper:** Wide — one row per utility, columns for each session
 
@@ -706,7 +753,7 @@ cat("Saved: rstudio_output/output_utility_comparison.csv\n")
 
 ---
 
-## VIZ-3: Who Paid for Energy Committee Dinners (Sector Breakdown Donut)
+## VIZ-3: Who Paid for Energy Committee Dinners (Sector Breakdown Donut) DONUT BAD, OMIT
 
 **Tool:** Datawrapper
 **Status:** NOT to be included in story.
@@ -743,8 +790,8 @@ cat("Saved: rstudio_output/output_ent_eee_sector_breakdown.csv\n")
 
 **Tool:** Flourish
 **Headline:** The session dinner calendar
-**Subhead:** Energy lobbyists hosted `r nrow(ent_eee_2026)` events for ENT and EEE members during the 2026 session as the Utility RELIEF Act advanced
-**Source:** Maryland State Ethics Commission • Data as of April 27, 2026
+**Subhead:** Lobbyists hosted 34 dinners or receptions for the House Environment and Transportation Committee and the Senate Education, Energy, and the Environment Committee members during the 2026 legislative session as the Utility RELIEF Act advanced through the chambers
+**Source:** Maryland State Ethics Commission, Maryland General Assembly  • Data as of April 27, 2026
 **Byline:** Zaka Hossain, Capital News Service
 **X-axis:** event_date | **Y-axis:** category (three horizontal bands) | **Size:** total_cost | **Color:** category
 **Colors:** Gas/Electric Utility = #d85a30 | Renewable Energy = #1d9e75 | Other Interest = #888780
@@ -778,7 +825,7 @@ cat("Saved: rstudio_output/output_ent_eee_timeline_2026.csv\n")
 
 ---
 
-## VIZ-5: Event Frequency During the 2026 Session (Bar)
+## VIZ-5: Event Frequency During the 2026 Session (Bar), OMIT
 
 **Tool:** Datawrapper
 **Status:** NOT to be included in story.
@@ -911,4 +958,4 @@ DATA CAVEATS:
 
 ---
 
-*Analysis by Zaka Hossain, Capital News Service. Generated `r format(Sys.Date(), "%B %d, %Y")`.*
+*Analysis by Zaka Hossain, Capital News Service. Fact-checked by Aidan Hughes. Generated `2026-05-05`.*
