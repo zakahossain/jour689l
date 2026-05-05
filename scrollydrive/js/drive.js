@@ -74,11 +74,19 @@ function createPuckMarker(info) {
     el.appendChild(hit);  // hit target on top, captures all clicks
 
     function open(e) {
+        console.log('[puck click]', info.name, e ? e.type : 'manual');
         if (e) { e.stopPropagation(); e.preventDefault(); }
-        showTooltip(info);
+        try {
+            showTooltip(info);
+            console.log('[puck click] tooltip created for', info.name);
+        } catch (err) {
+            console.error('[puck click] showTooltip failed:', err);
+        }
     }
     hit.addEventListener('click', open);
     hit.addEventListener('touchend', open);
+    // Also bind on the parent marker as a fallback
+    el.addEventListener('click', open);
 
     var marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat(info.coords)
